@@ -1,0 +1,11 @@
+make_dataset:
+  split_data: 100
+  split_ratio: 0.3
+  seed: 42
+  
+# prepare:
+prepare:
+  resize: [224, 224]
+
+# train:
+# evaluate:
