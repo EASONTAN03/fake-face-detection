@@ -1,0 +1,20 @@
+name: fakefacedetect
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - black
+  - flake8
+  - isort
+  - pip
+  - ipython
+  - jupyterlab
+  - matplotlib
+  - notebook
+  - numpy
+  - pandas
+  - scikit-learn
+  - pip:
+    - python-dotenv
+    - mkdocs

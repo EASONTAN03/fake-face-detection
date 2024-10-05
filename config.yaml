@@ -1,0 +1,17 @@
+dataset:
+  raw: data/raw              # Path to raw dataset
+  processed: data/processed  # Path to processed dataset
+  interim: data/interim      # Path to interim data
+  external: data/external
+
+output:
+  models: models              # Directory for saving trained models
+
+results:
+  figures: results/figures    # Directory for output figures
+  stats: results/stats
+
+configs:
+  dataset: 'real_and_fake_face'
+  datatype: ['training_real', 'training_fake'] #[real,fake]
+  benchmark: 2
