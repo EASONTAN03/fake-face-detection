@@ -1,11 +1,33 @@
 make_dataset:
-  split_data: 100
-  split_ratio: 0.3
-  seed: 42
+  split_data: 50
+  split_ratio: 0.2
+  seed: 17
   
 # prepare:
 prepare:
-  resize: [224, 224]
+  train_test: 'train' #test
+  resize: [128, 128]
+  color_mode: "Gray" #Gray YCbCr RGB
+  normalize: False
+  filter: 
+    method: "gabor" #sobel gaussian gabor 
+    gaussian: 
+      kernel: [5, 5]
+      sigma: 0.5
+    gabor:
+      sigma: 5
+      frequency: 0.6
+  feature_extract:
+    method: "hog" #fft sift hog ela lbp apply_landmark_detection
+    pca:
+      components: 1
+    ela:
+      quality: 70
+    lbp:
+      radius: 1
+      n_points: 8
+
+
 
 # train:
 # evaluate:

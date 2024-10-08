@@ -14,4 +14,4 @@ results:
 configs:
   dataset: 'real_and_fake_face'
   datatype: ['training_real', 'training_fake'] #[real,fake]
-  benchmark: 2
+  benchmark: 3
