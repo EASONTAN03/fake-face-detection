@@ -4,8 +4,17 @@ import random
 import numpy as np
 import json
 import csv
+import cv2
 import os
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+from preprocess_utils import denormalize_img
+
+def dict2str(model_params):
+    if model_params is None:
+        return " " 
+    formatted_params = [f"{key}: {value}" for key, value in model_params.items()]
+    return ', '.join(formatted_params)
 
 def create_dir(dir_path):
     os.makedirs(dir_path, exist_ok=True)
@@ -15,6 +24,7 @@ def check_delete_dir(dir_path):
         shutil.rmtree(dir_path)
 
 def load_img(real_and_fake_face_path, datatype):
+
     real_images=[]
     fake_images=[]
     try:
@@ -157,7 +167,109 @@ def compute_stats(tn, tp, fp, fn):
         "auroc": auroc
     }
 
-    return round(stats_dir, 3)
+    return {key: round(value, 3) for key, value in stats_dir.items()}
+
 
 def load_labels(label_file):
     return np.load(label_file)
+
+
+def read_images(image_dir):
+    """
+    Read images from JPG files in the specified directory.
+
+    Args:
+        image_dir (str): Directory containing JPG files.
+
+    Returns:
+        List of images loaded from JPG files.
+    """
+    images = []
+    
+    # Loop through all files in the directory
+    for filename in os.listdir(image_dir):
+        if filename.endswith('.jpg') or filename.endswith('.jpeg'):  # Check for JPG files
+            img_path = os.path.join(image_dir, filename)
+            img = cv2.imread(img_path)  # Read the image using cv2
+            
+            if img is None:
+                print(f"Error loading image: {img_path}")
+                continue
+                
+            images.append(img)  # Append the loaded image to the list
+    return images
+
+
+def plot_images(original_images, processed_images, feature_images, labels, num_images=6):
+    """
+    Plot the first `num_images` original images in the first row, their processed versions in the second row,
+    and extracted feature images in the third row, along with labels indicating whether the image is tampered or original.
+    
+    Args:
+        original_images (list): List of original images.
+        processed_images (list): List of processed images.
+        feature_images (list): List of extracted feature images.
+        labels (np.ndarray): Labels indicating tampered (1) or original (0) images.
+        num_images (int): Number of images to plot. Default is 6.
+    """
+    plt.figure(figsize=(15, 9))  # Adjust height for three rows
+
+    # Plot original images
+    for i in range(num_images):
+        plt.subplot(3, num_images, i + 1)
+        plt.imshow(cv2.cvtColor(original_images[i], cv2.COLOR_BGR2RGB))  # Convert BGR to RGB for displaying
+        
+        # Set title based on label
+        label = "Fake" if labels[i] == 1 else "Real"
+        plt.title(f'Original {i + 1} ({label})')
+        plt.axis('off')
+    
+    # Plot processed images
+    for i in range(num_images):
+        plt.subplot(3, num_images, i + 1 + num_images)
+        # Handle grayscale vs RGB images
+        # if np.max(processed_images[i]) <= 1:
+        #     processed_images_i = ((processed_images[i] * 255)).astype(np.uint8)
+        # else:
+        #     processed_images_i=processed_images[i].astype(np.uint8)
+        processed_images_i=processed_images[i]
+        if len(processed_images_i.shape) == 2:  # Grayscale image
+            plt.imshow(processed_images_i, cmap='gray')  # Use gray colormap
+            label = "Fake" if labels[i] == 1 else "Real"
+            plt.title(f'Processed {i + 1} ({label})')
+        else:  # RGB image
+            if np.max(processed_images_i) <= 8:
+    
+                processed_images_i = denormalize_img(processed_images_i).astype(np.uint8)
+            else:
+                processed_images_i=processed_images_i.astype(np.uint8)
+            plt.imshow(cv2.cvtColor(processed_images_i, cv2.COLOR_BGR2RGB))  # Convert BGR to RGB for displaying
+            label = "Fake" if labels[i] == 1 else "Real"
+            plt.title(f'Processed {i + 1} ({label})')
+
+        plt.axis('off')
+    
+    # Plot feature images
+    for i in range(num_images):
+        plt.subplot(3, num_images, i + 1 + 2 * num_images)
+        # if np.max(feature_images[i]) <= 1:
+        #     feature_images_i = ((feature_images[i] * 255)).astype(np.uint8)
+        # else:
+        #     feature_images_i=feature_images[i].astype(np.uint8)
+        feature_images_i=feature_images[i]
+        if len(feature_images_i.shape) == 2:  # Grayscale feature image
+            plt.imshow(feature_images_i, cmap='gray')  # Use gray colormap
+            plt.title(f'Feature {i + 1}')
+        else:  # RGB feature image
+            if np.max(feature_images_i) <= 1:
+                feature_images_i = denormalize_img(feature_images_i).astype(np.uint8)
+            else:
+                feature_images_i=feature_images_i.astype(np.uint8)
+            plt.imshow(cv2.cvtColor(feature_images_i, cv2.COLOR_BGR2RGB))  # Convert BGR to RGB for displaying
+            plt.title(f'Feature {i + 1}')
+        plt.axis('off')
+    
+    # Improve layout and spacing
+    plt.tight_layout()
+    plt.suptitle('Comparison of Original, Processed, and Feature Images', fontsize=16)  # Add a title for the entire plot
+    plt.show()
