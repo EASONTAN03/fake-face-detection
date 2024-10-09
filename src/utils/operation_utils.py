@@ -10,6 +10,11 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from preprocess_utils import denormalize_img
 
+def dict2str(model_params):
+    if model_params is None:
+        return " " 
+    formatted_params = [f"{key}: {value}" for key, value in model_params.items()]
+    return ', '.join(formatted_params)
 
 def create_dir(dir_path):
     os.makedirs(dir_path, exist_ok=True)
@@ -162,7 +167,8 @@ def compute_stats(tn, tp, fp, fn):
         "auroc": auroc
     }
 
-    return round(stats_dir, 3)
+    return {key: round(value, 3) for key, value in stats_dir.items()}
+
 
 def load_labels(label_file):
     return np.load(label_file)

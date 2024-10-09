@@ -26,6 +26,7 @@ with open('params.yaml', 'r') as file:
 seed = params['make_dataset']['seed']
 
 param_prepare = params['prepare']
+prepare_benchmark = param_prepare['benchmark']
 train_test = param_prepare['train_test']
 resize = tuple(param_prepare['resize'])
 color = param_prepare['color_mode']
@@ -85,6 +86,9 @@ elif filter=="gabor":
     frequency=param_filter['gabor']['frequency']
     processed_images = preprocess.apply_gabor(resize_images, sigma, frequency)
     preprocess_method=f'{filter}, sigma:{sigma}, frequency:{frequency}'
+elif filter=="none":
+    processed_images=resize_images
+    preprocess_method=f'{filter}'
 processed_images=np.array(processed_images)
 print("Done filtering with output shape: ",processed_images.shape, np.min(processed_images), np.mean(processed_images), np.max(processed_images))
 print(processed_images[0])
@@ -121,13 +125,14 @@ print("Done feature extraction with output shape: ",extracted_features.shape)
 utils.plot_images(ref_images, processed_images, extracted_features, labels, num_images=6)
 
 # Save preprocessed images and labels
-os.makedirs(output_dir, exist_ok=True)
-np.save(os.path.join(output_dir, f'{train_test}_features.npy'), extracted_features)
-np.save(os.path.join(output_dir, f'{train_test}_labels.npy'), labels)
+utils.create_dir(output_dir)
+np.save(os.path.join(output_dir, f'features_{prepare_benchmark}.npy'), extracted_features)
+np.save(os.path.join(output_dir, f'labels_{prepare_benchmark}.npy'), labels)
 print(f"Data has been successfully preprocessed and saved to {output_dir}")
 
 log_data = {
     "dataset": data_dir,
+    "prepare_benchmark": prepare_benchmark,
     "seed": seed,
     "train_test": train_test,
     "interpolation_resize": f"resize:{resize}, normalize:{normalize}, color_mode:{color}",

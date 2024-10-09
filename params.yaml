@@ -5,12 +5,13 @@ make_dataset:
   
 # prepare:
 prepare:
+  benchmark: 17
   train_test: 'train' #test
   resize: [128, 128]
   color_mode: "Gray" #Gray YCbCr RGB
   normalize: False
   filter: 
-    method: "gabor" #sobel gaussian gabor 
+    method: "gaussian" #sobel gaussian gabor 
     gaussian: 
       kernel: [5, 5]
       sigma: 0.5
@@ -18,7 +19,7 @@ prepare:
       sigma: 5
       frequency: 0.6
   feature_extract:
-    method: "hog" #fft sift hog ela lbp apply_landmark_detection
+    method: "pca" #fft sift hog ela lbp apply_landmark_detection
     pca:
       components: 1
     ela:
@@ -29,5 +30,30 @@ prepare:
 
 
 
-# train:
+
+train:
+  train: True
+  model_benchmark: 1
+  model: "svm" 
+  split_ratio: 0.2
+  scale_features: "standard" #standard
+  params: True
+  svm:
+    C: [0.1, 1, 10]
+    gamma: ['auto'] #'scale', 
+    kernel: ['linear', 'rbf', 'poly']
+  knn:
+    n_neighbors: [3, 5, 7, 10]
+    weights: ['uniform', 'distance']
+  rf:
+    n_estimators: [50, 100, 200]
+    max_depth: [None, 10, 20]
+    min_samples_split: [2, 5, 10]
+  lgbm:
+    n_estimators: [100, 200]
+    learning_rate: [0.01, 0.1, 0.2]
+  xgb:
+    n_estimators: [100, 200]
+    learning_rate: [0.01, 0.1, 0.2]
+
 # evaluate:
