@@ -1,9 +1,10 @@
 # FakefaceDetect
+Machine learning for real and fake face detection
+
 <a target="_blank" href="https://cookiecutter-data-science.drivendata.org/">
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
-Machine learning for real and fake face detection
 
 ## Project Organization
 
@@ -30,8 +31,7 @@ Machine learning for real and fake face detection
 │
 ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
 │
-├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   └── figures        <- Generated graphics and figures to be used in reporting
+├── reports            <- Generated analysis as HTML, PDF, LaTeX, /graphics and figures to be used in reporting
 │
 ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
 │                         generated with `pip freeze > requirements.txt`
@@ -50,3 +50,5 @@ Machine learning for real and fake face detection
     │
     └── evaluate              <- test model with specific dataset
 ```
+
+--------
