@@ -5,38 +5,46 @@ import cv2
 import numpy as np
 import pandas as pd
 import json
-from sklearn.metrics import accuracy_score, confusion_matrix
-from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, make_scorer, log_loss
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, learning_curve
 from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
 import random
-import joblib
+import matplotlib.pyplot as plt
+from datetime import datetime
 
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 import operation_utils as utils
-import modeling_utils as modeling
-current_dir = os.getcwd()
+from modeling_utils import *
 
-with open('config.yaml', 'r') as file:
+current_dir = os.getcwd()
+print(current_dir)
+base_path = os.path.abspath(os.path.join(current_dir, '..'))
+print("Base Path:", base_path)
+
+with open('../config.yaml', 'r') as file:
     config = yaml.safe_load(file)
 
-processed_data_path = config['dataset']['processed']
-output_model_path = config['output']['models']
+processed_data_path = os.path.join(base_path,config['dataset']['processed'])
+output_model_path = os.path.join(base_path,config['output']['models'])
 dataset = config['configs']['dataset']
 benchmark = config['configs']['benchmark']
 
-with open('params.yaml', 'r') as file:
+with open('../params.yaml', 'r') as file:
     params = yaml.safe_load(file)
 seed = params['make_dataset']['seed']
 prepare_benchmark = params['prepare']['benchmark']
+
 param_train = params['train']
+continue_training = param_train['continue_training']
 model_benchmark=param_train['model_benchmark']
 model=param_train['model']
-param_model = params['train'][f"{model}"]
 split_ratio=param_train['split_ratio']
-scale_features=param_train['scale_features']
-train=param_train['train']
-
+scale_features=param_train['scaler']
+model_params = param_train[f"{model}"]
 
 np.random.seed(seed)
 random.seed(seed)
@@ -52,137 +60,120 @@ model_path = f'{dataset}_{benchmark}_{prepare_benchmark}_{model_benchmark}'
 input_dir = os.path.join(processed_data_path, data_dir, 'train')
 features_path = os.path.join(input_dir,f'features_{prepare_benchmark}.npy')
 labels_path = os.path.join(input_dir,f'labels_{prepare_benchmark}.npy')
-features = np.load(features_path)  # Shape: (N, 224, 224, 3)
-labels = np.load(labels_path)  # Shape: (N,)
+features = np.load(features_path)  # Shape: (N, 224, 224)
+y_train = np.load(labels_path)  # Shape: (N,)
+
+validate_dir= os.path.join(processed_data_path, data_dir, 'test')
+validate_features_path = os.path.join(validate_dir,f'features_{prepare_benchmark}.npy')
+validate_labels_path = os.path.join(validate_dir,f'labels_{prepare_benchmark}.npy')
+X_test = np.load(validate_features_path)  # Shape: (N, 224, 224)
+y_test = np.load(validate_labels_path)  # Shape: (N,)
 
 model_path_dir=os.path.join(output_model_dir, f"{model_path}.pkl")
 
-# Flatten the images (convert 224x224x3 into 1D arrays for each image)
+# Flatten the images (convert 224x224 into 1D arrays for each image)
 size_1=features.shape[1]
 size_2=features.shape[2]
-if features.shape[-1] == 3:
-    features = features.reshape(features.shape[0], size_1 * size_2 * 3)
-else:
-    features = features.reshape(features.shape[0], size_1 * size_2)
+X_train = features.reshape(features.shape[0], size_1 * size_2)
+X_test = features.reshape(features.shape[0], size_1 * size_2)
 print("Features shape: ", features.shape)
 
-X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=seed)
+X = np.concatenate((X_train, X_test), axis=0)
+y = np.concatenate((y_train, y_test), axis=0)
+ 
+# Example usage
+if __name__ == "__main__":    
+    # Initialize trainer
+    trainer = ModelTrainer(model=model, checkpoint_dir=output_model_dir, model_benchmark=model_benchmark,random_state=seed)
 
-if scale_features =="standard":
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
-else:
-    X_train_scaled = X_train
-    X_test_scaled = X_test
-    
-if train==True:
+    # Train models
+    # First training session
     if model=="svm":
-        parameters = {
-        'C': param_model['C'],
-        'gamma': param_model['gamma'],
-        'kernel': param_model['kernel']
+        param_grid = {
+            'svm__C': model_params['C'],
+            'svm__kernel': model_params['kernel'],
+            'svm__gamma': model_params['gamma']
         }
-        if param_train['params'] == False:
-            parameters=None
-        trained_model=modeling.svm(X_train_scaled,y_train,parameters)
+        
+        trainer.train_svm(X_train, y_train, param_grid, continue_training)
     elif model=="knn":
-        parameters = {
-        'n_neighbors': param_model['n_neighbors'],
-        'weights': param_model['weights']
+        param_grid = {
+            'knn__n_neighbors': model_params['n_neighbors'],
+            'knn__weights': model_params['weights'],
+            'knn__metric': model_params['metric']
         }
-        if param_train['params'] == False:
-            parameters=None
-        trained_model=modeling.knn(X_train_scaled,y_train,parameters)
-    elif model=="rf":
-        parameters = {
-        'n_estimators': param_model['n_estimators'],
-        'max_depth': param_model['max_depth'],
-        'min_samples_split': param_model['min_samples_split']
-        }
-        if param_train['params'] == False:
-            parameters=None
-        trained_model=modeling.random_forest(X_test_scaled,y_train,parameters)
-    elif model=="lgbm":
-        parameters = {
-        'n_estimators': param_model['n_estimators'],
-        'learning_rate': param_model['learning_rate']
-        }
-        if param_train['params'] == False:
-            parameters=None
-        trained_model=modeling.lgbm(X_test_scaled,y_train,parameters)
-        X_test_scaled=X_test
-    elif model=="xgb":
-        parameters = {
-        'n_estimators': param_model['n_estimators'],
-        'learning_rate': param_model['learning_rate']
-        }
-        if param_train['params'] == False:
-            parameters=None
-        trained_model=modeling.xgboost(X_test_scaled,y_train,parameters)    
-    joblib.dump(trained_model, model_path_dir)
-else:
-    # Load the trained model
-    trained_model = joblib.load(model_path_dir)
-    parameters=None
-
-
-train_accuracy = accuracy_score(y_train, trained_model.predict(X_train_scaled))
-test_accuracy = accuracy_score(y_test, trained_model.predict(X_test_scaled))
-confusion = confusion_matrix(y_test, trained_model.predict(X_test_scaled))
-tn, fp, fn, tp = confusion.ravel()
-stats = utils.compute_stats(tn, tp, fp, fn)
-
-print(f"\n{model} Results:")
-print(f"Training Accuracy: {train_accuracy:.4f}")
-print(f"Testing Accuracy: {test_accuracy:.4f}")
-print(f"Confusion Matrix:\n{confusion}")
-
-
-model_params=f"model:{model}, {utils.dict2str(parameters)}"
-if model_params.endswith(',  '):
-    model_params = model_params[:-3]  
-
-log_data = {
-    "model_path": model_path,
-    "model_benchmark": model_benchmark,
-    "features_dir": processed_data_dir,
-    "model_params": model_params,
-    "seed": seed,
-    'train_test_split': split_ratio,
-    'scaler': scale_features,
-    "features_shape": features.shape,
-    "labels_shape": labels.shape,
-    "output_dir": output_model_dir,
-}
-
-# Path to log file
-log_file_path = os.path.join(output_dir, "log.json")
-utils.write_json(log_data, log_file_path)
-
-# Write statistics to CSV
-header = ["model_path", "model", "tp", "fp", "tn", "fn", "accuracy", "precision", "recall", "specificity", "mcc", "auroc"]
-stats_file_path = os.path.join(output_dir, "model_stats.csv")
-file_exists = os.path.isfile(stats_file_path)
-
-with open(stats_file_path, mode='a', newline='') as file:
-    writer = csv.writer(file)
-    # Write header if the file does not exist
-    if not file_exists:
-        writer.writerow(header)
-    # Write the statistics
-    writer.writerow([model_path, model_params, tp, fp, tn, fn, stats["accuracy"], stats["precision"], stats["recall"], 
-                     stats["specificity"], stats["mcc"], stats["auroc"]])
+        trainer.train_knn(X_train, y_train, param_grid, continue_training)
     
+    # Evaluate models
+    X_test_scaled=trainer.scaler.transform(X_test)
+    y_pred, results = trainer.evaluate_models(X_test_scaled, y_test)
+    
+    # Print results
+    print("\nFirst Training Session Results:")   
+    print(f"\n{model} Results:")
+    print(f"Accuracy: {results[model]['accuracy']:.4f}")
+    print(f"Log Loss: {results[model]['log_loss']:.4f}")
+    print("Best Parameters:", results[model]['best_params'])
 
-stats_file_path = os.path.join(output_model_path, "model_stats.csv")
-file_exists = os.path.isfile(stats_file_path)
 
-with open(stats_file_path, mode='a', newline='') as file:
-    writer = csv.writer(file)
-    # Write header if the file does not exist
-    if not file_exists:
-        writer.writerow(header)
-    # Write the statistics
-    writer.writerow([model_path, model_params, tp, fp, tn, fn, stats["accuracy"], stats["precision"], stats["recall"], 
-                     stats["specificity"], stats["mcc"], stats["auroc"]])
+    test_accuracy = accuracy_score(y_test, y_pred)
+    confusion = confusion_matrix(y_test, y_pred)
+    tn, fp, fn, tp = confusion.ravel()
+    stats = utils.compute_stats(tn, tp, fp, fn)
+
+    print(f"\n{model} Results:")
+    print(f"Testing Accuracy: {test_accuracy:.4f}")
+    print(f"Confusion Matrix:\n{confusion}")
+
+
+    model_params=f"model:{model}, {utils.dict2str(results[model]['best_params'])}"
+    if model_params.endswith(',  '):
+        model_params = model_params[:-3]  
+
+    log_data = {
+        "seed": seed,
+        "model_path": model_path,
+        "model_benchmark": model_benchmark,
+        "features_dir": processed_data_dir,
+        "model_params": model_params,
+        'scaler': scale_features,
+        'train_test_split': split_ratio,
+        "train_features_shape": features.shape,
+        "train_labels_shape": y_train.shape,
+        "output_dir": output_model_dir,
+    }
+
+    # Path to log file
+    log_file_path = os.path.join(output_dir, "log.json")
+    utils.write_json(log_data, log_file_path)
+
+    # Write statistics to CSV
+    header = ["model_path", "model", "tp", "fp", "tn", "fn", "accuracy", "precision", "recall", "specificity", "mcc", "auroc"]
+    stats_file_path = os.path.join(output_dir, "model_stats.csv")
+    file_exists = os.path.isfile(stats_file_path)
+
+    with open(stats_file_path, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        # Write header if the file does not exist
+        if not file_exists:
+            writer.writerow(header)
+        # Write the statistics
+        writer.writerow([model_path, model_params, tp, fp, tn, fn, stats["accuracy"], stats["precision"], stats["recall"], 
+                        stats["specificity"], stats["mcc"], stats["auroc"]])
+        
+
+    stats_file_path = os.path.join(output_model_path, "model_stats.csv")
+    file_exists = os.path.isfile(stats_file_path)
+
+    with open(stats_file_path, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        # Write header if the file does not exist
+        if not file_exists:
+            writer.writerow(header)
+        # Write the statistics
+        writer.writerow([model_path, model_params, tp, fp, tn, fn, stats["accuracy"], stats["precision"], stats["recall"], 
+                        stats["specificity"], stats["mcc"], stats["auroc"]])
+    
+    
+    trainer.plot_learning_curves(X,y)
+        

@@ -8,7 +8,12 @@ import cv2
 import os
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from preprocess_utils import denormalize_img
+
 
 def dict2str(model_params):
     if model_params is None:
