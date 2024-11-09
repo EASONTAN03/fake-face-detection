@@ -4,40 +4,46 @@ import cv2
 import numpy as np
 import pandas as pd
 import json
-import shutil  # Import shutil to copy files
 import random
+import time
 
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 import operation_utils as utils
 import preprocess_utils as preprocess
-current_dir = os.getcwd()
 
-with open('config.yaml', 'r') as file:
+start_time = time.time()
+
+current_dir = os.getcwd()
+print(current_dir)
+base_path = os.path.abspath(os.path.join(current_dir, '..'))
+print("Base Path:", base_path)
+
+with open('../config.yaml', 'r') as file:
     config = yaml.safe_load(file)
 
-interim_data_path = config['dataset']['interim']
-processed_data_path = config['dataset']['processed']
+with open('../params.yaml', 'r') as file:
+    params = yaml.safe_load(file)
+
+# Set dataset and benchmark parameters
+interim_data_path = os.path.join(base_path,config['dataset']['interim'])
+processed_data_path = os.path.join(base_path,config['dataset']['processed'])
 dataset = config['configs']['dataset']
 benchmark = config['configs']['benchmark']
 
-with open('params.yaml', 'r') as file:
-    params = yaml.safe_load(file)
+# Set random seed for reproducibility
 seed = params['make_dataset']['seed']
+np.random.seed(seed)
+random.seed(seed)
 
+# Prepare dataset parameters
 param_prepare = params['prepare']
 prepare_benchmark = param_prepare['benchmark']
 train_test = param_prepare['train_test']
 resize = tuple(param_prepare['resize'])
-color = param_prepare['color_mode']
 normalize = param_prepare['normalize']
-param_filter=param_prepare['filter']
-filter = param_filter['method']
-param_feature=param_prepare['feature_extract']
-feature_extract = param_feature['method']
-
-np.random.seed(seed)
-random.seed(seed)
+preprocess_method = param_prepare['method']
+extract_stats = param_prepare['extract_stats']
 
 # Define input and output directories
 data_dir = f'{dataset}_{benchmark}'
@@ -46,103 +52,81 @@ output_dir = os.path.join(processed_data_path, data_dir, train_test)
 images_dir = os.path.join(input_dir, train_test)
 datatype=["real","fake"]
 
-
 real_images=np.array(utils.read_images(os.path.join(images_dir,datatype[0])))
 fake_images=np.array(utils.read_images(os.path.join(images_dir,datatype[1])))
-images=np.concatenate((real_images,fake_images))
-labels=np.array([0]*len(real_images)+[1]*len(fake_images))
-
-#Normalised images
-# train_images = np.array([preprocess.resize_and_normalize(img, resize) for img in train_images], dtype=np.uint8)
-# test_images = np.array([preprocess.resize_and_normalize(img, resize) for img in test_images], dtype=np.uint8)
-
-ref_images = []
-resize_images = []
+images = np.concatenate((real_images, fake_images))
+labels = np.array([0] * len(real_images) + [1] * len(fake_images))
+# Resize and normalize images
+ref_images, resize_images = [], []
 for img in images:
-    ori, norm = preprocess.resize_and_normalize(img, resize, normalize, color)
+    ori, norm = preprocess.resize_and_normalize(img, resize, normalize)
     ref_images.append(ori)
     resize_images.append(norm)
-ref_images=np.array(ref_images)
-resize_images=np.array(resize_images)
 
-# Create an array of indices and shuffle them
+ref_images = np.array(ref_images)
+resize_images = np.array(resize_images)
+
+# Shuffle images and labels
 indices = np.arange(resize_images.shape[0])
-np.random.shuffle(indices) 
-ref_images=ref_images[indices]
+np.random.shuffle(indices)
+ref_images = ref_images[indices]
 resize_images = resize_images[indices]
 labels = labels[indices]
 
-'''Apply filter/ edge detection techniques'''
-if filter=="sobel":
-    processed_images = preprocess.apply_sobel(resize_images)
-    preprocess_method=f'{filter}'
-elif filter=="gaussian":
-    kernel=tuple(param_filter['gaussian']['kernel'])
-    sigma=param_filter['gaussian']['sigma']
-    processed_images = preprocess.apply_gaussian(resize_images, kernel, sigma)
-    preprocess_method=f'{filter}, kernel:{kernel}, sigma:{sigma}'
-elif filter=="gabor":
-    sigma=param_filter['gabor']['sigma']
-    frequency=param_filter['gabor']['frequency']
-    processed_images = preprocess.apply_gabor(resize_images, sigma, frequency)
-    preprocess_method=f'{filter}, sigma:{sigma}, frequency:{frequency}'
-elif filter=="none":
-    processed_images=resize_images
-    preprocess_method=f'{filter}'
-processed_images=np.array(processed_images)
-print("Done filtering with output shape: ",processed_images.shape, np.min(processed_images), np.mean(processed_images), np.max(processed_images))
-print(processed_images[0])
+# Apply texture extraction/edge detection techniques
+if preprocess_method == "fft":
+    processed_images = preprocess.apply_fft(resize_images)
+    preprocess_method = f'{preprocess_method}'
+elif preprocess_method == "lbp":
+    radius = param_prepare['lbp']['radius']
+    n_points = param_prepare['lbp']['n_points']
+    method = param_prepare['lbp']['method']
+    processed_images = preprocess.apply_lbp(resize_images, radius, n_points, method)
+    preprocess_method = f'{preprocess_method}, radius:{radius}, n_points:{n_points}, method:{method}'
+elif preprocess_method == "sobel":
+    kernel = param_prepare['sobel']['kernel']
+    processed_images = preprocess.apply_sobel(resize_images, kernel)
+    preprocess_method = f'{preprocess_method}, kernel:{kernel}'
+elif preprocess_method == "clahe":
+    clip_limit = param_prepare['clahe']['clip_limit']
+    tile_grid_size = tuple(param_prepare['clahe']['tile_grid_size'])
+    processed_images = preprocess.apply_clahe(resize_images, clip_limit, tile_grid_size)
+    preprocess_method = f'{preprocess_method}, clip_limit:{clip_limit} ,tile_grid_size:{tile_grid_size}'
+elif preprocess_method == "none":
+    processed_images = resize_images
+    preprocess_method = f'{preprocess_method}'
 
-'''Apply feature extraction/reduction techniques'''
-if feature_extract=="pca":
-    components=param_feature['pca']['components']
-    extracted_features = preprocess.apply_pca(processed_images, components)
-    feature_extract_method=f'{feature_extract}, components:{components}'
-elif feature_extract=="fft":
-    extracted_features = preprocess.apply_fft(processed_images)
-    feature_extract_method=f'{feature_extract}'
-elif feature_extract=="sift":
-    extracted_features = preprocess.apply_sift(processed_images)
-    feature_extract_method=f'{feature_extract}'
-elif feature_extract=="hog":
-    extracted_features = preprocess.apply_hog(processed_images)
-    feature_extract_method=f'{feature_extract}'
-elif feature_extract=="ela":
-    quality=param_feature['ela']['quality']
-    extracted_features = preprocess.apply_ela(processed_images, quality)
-    feature_extract_method=f'{feature_extract}, quality:{quality}'
-elif feature_extract=="lbp":
-    radius=param_feature['lbp']['radius']
-    n_points=param_feature['lbp']['n_points']
-    extracted_features = preprocess.apply_lbp(processed_images, radius, n_points)
-    feature_extract_method=f'{feature_extract}, radius:{radius}, n_points:{n_points}'
-elif feature_extract=="apply_landmark_detection":
-    extracted_features = preprocess.apply_landmark_detection(processed_images)
-    feature_extract_method=f'{feature_extract}'
-extracted_features=np.array(extracted_features)
-print("Done feature extraction with output shape: ",extracted_features.shape)
+processed_images = np.array(processed_images)
 
-utils.plot_images(ref_images, processed_images, extracted_features, labels, num_images=6)
+if extract_stats==True:
+    features = np.array([preprocess.extract_statistics(img) for img in processed_images])
+else:
+    features=processed_images
 
 # Save preprocessed images and labels
 utils.create_dir(output_dir)
-np.save(os.path.join(output_dir, f'features_{prepare_benchmark}.npy'), extracted_features)
+np.save(os.path.join(output_dir, f'features_{prepare_benchmark}.npy'), features)
 np.save(os.path.join(output_dir, f'labels_{prepare_benchmark}.npy'), labels)
 print(f"Data has been successfully preprocessed and saved to {output_dir}")
+
+# Calculate the total runtime
+end_time = time.time()
+runtime = end_time - start_time
+print(f"Total runtime: {runtime:.2f} seconds")
 
 log_data = {
     "dataset": data_dir,
     "prepare_benchmark": prepare_benchmark,
     "seed": seed,
     "train_test": train_test,
-    "interpolation_resize": f"resize:{resize}, normalize:{normalize}, color_mode:{color}",
+    "interpolation_resize": f"resize:{resize}, normalize:{normalize}, extract_stats:{extract_stats}",
     "preprocess_method": preprocess_method,
-    "feature_extract_method": feature_extract_method,
-    "features_shape": extracted_features.shape,
+    "features_shape": features.shape,
     "labels_shape": labels.shape,
-    "output_dir": output_dir
+    "output_dir": output_dir,
+        "runtime_seconds": runtime  # Log the runtime
 }
 
 # Path to log file
-log_file_path = os.path.join(processed_data_path, "log.json")
+log_file_path = os.path.join(output_dir, "log.json")
 utils.write_json(log_data, log_file_path)
