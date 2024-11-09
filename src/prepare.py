@@ -98,9 +98,8 @@ elif preprocess_method == "none":
 
 processed_images = np.array(processed_images)
 
-if extract_stats=="True":
-    features = [preprocess.extract_statistics(processed_images) for img in processed_images]
-    features = np.array(features.values())
+if extract_stats==True:
+    features = np.array([preprocess.extract_statistics(img) for img in processed_images])
 else:
     features=processed_images
 

@@ -3,6 +3,8 @@
 /results/
 /models/
 
+/backup/
+
 # Mac OS-specific storage files
 .DS_Store
 

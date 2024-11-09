@@ -51,16 +51,15 @@ utils.create_dir(test_dir)
 
 for i, image_path in enumerate(train_images):
     file_name = image_path.split("/")[-1]  # Get the original file name
+    file_name = os.path.basename(file_name)
     train_real_dir=os.path.join(train_dir, "real")
     train_fake_dir=os.path.join(train_dir, "fake")
     utils.create_dir(train_real_dir)
     utils.create_dir(train_fake_dir)
     if train_labels[i] == 0:
-        dest_path = os.path.join(train_real_dir, file_name)  # Create the destination path
-        shutil.copy(image_path, dest_path)  # Copy the image to the train directory
+        shutil.copy(image_path, train_real_dir)  # Copy the image to the train directory
     else:
-        dest_path = os.path.join(train_fake_dir, file_name)  # Create the destination path
-        shutil.copy(image_path, dest_path)  # Copy the image to the train directory
+        shutil.copy(image_path, train_fake_dir)  # Copy the image to the train directory
 
 for i, image_path in enumerate(test_images):
     file_name = image_path.split("/")[-1]  # Get the original file name
@@ -68,12 +67,10 @@ for i, image_path in enumerate(test_images):
     test_fake_dir=os.path.join(test_dir, "fake")
     utils.create_dir(test_real_dir)
     utils.create_dir(test_fake_dir)
-    if train_labels[i] == 0:
-        dest_path = os.path.join(test_real_dir, file_name)  # Create the destination path
-        shutil.copy(image_path, dest_path)  # Copy the image to the train directory
+    if test_labels[i] == 0:
+        shutil.copy(image_path, test_real_dir)  # Copy the image to the train directory
     else:
-        dest_path = os.path.join(test_fake_dir, file_name)  # Create the destination path
-        shutil.copy(image_path, dest_path)  # Copy the image to the train directory
+        shutil.copy(image_path, test_fake_dir)  # Copy the image to the train directory
 
 # Save metadata in log.json
 log_data = {

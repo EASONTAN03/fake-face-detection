@@ -54,7 +54,6 @@ def apply_fft(images):
         processed_images.append(magnitude_spectrum)
     return processed_images
 
-
 def apply_lbp(images, radius=1, n_points=8, method='default'):
     """
     Apply Local Binary Pattern (LBP) to detect texture inconsistencies in the images.
@@ -130,12 +129,41 @@ def apply_clahe(images, clip_limit=2.0, tile_grid_size=(8, 8)):
         processed_images.append(clahe_image)
     return processed_images
 
-def extract_statistics(image):
-    stats = {
-        'Mean': round(np.mean(image), 5),
-        'Std Dev': round(np.std(image), 5),
-        'Max': round(np.max(image), 5),
-        'Min': round(np.min(image), 5),
-        'Median': round(np.median(image), 5)
-    }
-    return stats
+# def extract_statistics(image):
+#     stats = {
+#         'Mean': round(np.mean(image), 5),
+#         'Std Dev': round(np.std(image), 5),
+#         'Max': round(np.max(image), 5),
+#         'Min': round(np.min(image), 5),
+#         'Median': round(np.median(image), 5)
+#     }
+
+#     # Convert the dictionary values to a list
+#     stats_list = list(stats.values())
+    
+#     # Convert the list to a NumPy array
+#     stats_array = np.array(stats_list)
+
+#     return stats_array
+
+def extract_statistics(gray_image):
+    # Define patch size
+    patch_size = 32
+
+    # Step 1: Reshape the image into a 3D array of 7x7 patches, each of size 32x32
+    # (224x224) -> (7, 32, 7, 32), then rearrange to (7x7, 32, 32) for each patch
+    patches = gray_image.reshape(7, patch_size, 7, patch_size).swapaxes(1, 2).reshape(-1, patch_size, patch_size)
+
+    # Step 2: Calculate descriptive statistics for each patch in a vectorized way
+    min_vals = patches.min(axis=(1, 2))
+    q1_vals = np.percentile(patches, 25, axis=(1, 2))
+    q2_vals = np.median(patches, axis=(1, 2))
+    q3_vals = np.percentile(patches, 75, axis=(1, 2))
+    max_vals = patches.max(axis=(1, 2))
+    std_vals = patches.std(axis=(1, 2))
+    mean_vals = patches.mean(axis=(1, 2))
+
+    # Step 3: Stack all statistics to form the final feature matrix (49 patches x 7 features)
+    final_features = np.stack([min_vals, q1_vals, q2_vals, q3_vals, max_vals, std_vals, mean_vals], axis=1)
+
+    return final_features

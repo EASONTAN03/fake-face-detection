@@ -102,19 +102,19 @@ def write_csv(stats_dict, dir, file_name):
             fieldnames = [
                 'Benchmark', 'Dataset', 'Preprocess', 'Model', 'Model_name', 
                 'tp', 'fp', 'tn', 'fn', 'accuracy', 'precision', 'recall', 
-                'specificity', 'mcc', 'auroc'
+                'specificity', 'f1-score', 'mcc', 'auroc'
             ]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
     
     # Append a new row to the CSV file
     with open(file_path, 'a', newline='') as csvfile:
-        # fieldnames = [
-        #     'Benchmark', 'Dataset', 'Preprocess', 'Model', 'Model_name', 
-        #     'tp', 'fp', 'tn', 'fn', 'accuracy', 'precision', 'recall', 
-        #     'specificity', 'mcc', 'auroc'
-        # ]
-        # writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        fieldnames = [
+            'Benchmark', 'Dataset', 'Preprocess', 'Model', 'Model_name', 
+            'tp', 'fp', 'tn', 'fn', 'accuracy', 'precision', 'recall', 
+            'specificity', 'f1-score', 'mcc', 'auroc'
+        ]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writerow(stats_dict)
 
 def write_json(dict, json_file_path):
@@ -153,6 +153,8 @@ def compute_stats(tn, tp, fp, fn):
     # Compute the specificity
     specificity = tn / (tn + fp) if tn + fp > 0 else 0
 
+    f1_score = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+
     # Compute the Matthews correlation coefficient (MCC)
     mcc_numerator = (tp * tn) - (fp * fn)
     mcc_denominator = ((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)) ** 0.5
@@ -168,6 +170,7 @@ def compute_stats(tn, tp, fp, fn):
         "precision": precision,
         "recall": recall,
         "specificity": specificity,
+        'f1-score': f1_score,
         "mcc": mcc,
         "auroc": auroc
     }

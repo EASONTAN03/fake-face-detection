@@ -1,59 +1,41 @@
 make_dataset:
-  split_data: 50
+  seed: 42
+  split_data: 0
   split_ratio: 0.2
-  seed: 17
+
   
 # prepare:
 prepare:
-  benchmark: 17
-  train_test: 'train' #test
-  resize: [128, 128]
-  color_mode: "Gray" #Gray YCbCr RGB
+  benchmark: 1
+  train_test: 'test' #test
+  resize: [224, 224]
   normalize: False
-  filter: 
-    method: "gaussian" #sobel gaussian gabor 
-    gaussian: 
-      kernel: [5, 5]
-      sigma: 0.5
-    gabor:
-      sigma: 5
-      frequency: 0.6
-  feature_extract:
-    method: "pca" #fft sift hog ela lbp apply_landmark_detection
-    pca:
-      components: 1
-    ela:
-      quality: 70
-    lbp:
-      radius: 1
-      n_points: 8
-
-
+  method: "fft" #fft lbp sobel clahe
+  extract_stats: false
+  lbp:
+    radius: 1
+    n_points: 8
+    method: 'default' #uniform
+  sobel: 
+    kernel: 3
+  clahe:
+    clip_limit: 2.0
+    tile_grid_size: [8,8]
 
 
 train:
-  train: True
+  continue_training: False
   model_benchmark: 1
   model: "svm" 
   split_ratio: 0.2
-  scale_features: "standard" #standard
-  params: True
+  scaler: "standard" #standard
   svm:
-    C: [0.1, 1, 10]
-    gamma: ['auto'] #'scale', 
-    kernel: ['linear', 'rbf', 'poly']
+    C: [1,10,100,1000,10000] #[1] #[0.1, 1, 10]
+    gamma: [0.01,0.001,0.0001,0.00001] #'scale', 
+    kernel: ['rbf'] #['rbf'] #['linear', 'rbf', 'poly']
   knn:
-    n_neighbors: [3, 5, 7, 10]
+    n_neighbors: [3, 5, 7, 9, 11]
     weights: ['uniform', 'distance']
-  rf:
-    n_estimators: [50, 100, 200]
-    max_depth: [None, 10, 20]
-    min_samples_split: [2, 5, 10]
-  lgbm:
-    n_estimators: [100, 200]
-    learning_rate: [0.01, 0.1, 0.2]
-  xgb:
-    n_estimators: [100, 200]
-    learning_rate: [0.01, 0.1, 0.2]
+    metric: ['euclidean', 'manhattan']
 
 # evaluate:
