@@ -1,0 +1,3 @@
+model_path,model,tp,fp,tn,fn,accuracy,precision,recall,specificity,f1-score,mcc,auroc,loss
+real_and_fake_face_5_12_1,"(100, 'rbf', 10)",88,85,132,104,0.538,0.509,0.458,0.608,0.482,0.067,0.463,0.9242053789731052
+real_and_fake_face_5_12_1,"(7, 'uniform', 'manhattan')",95,107,110,97,0.501,0.47,0.495,0.507,0.482,0.002,0.495,0.9975550122249389

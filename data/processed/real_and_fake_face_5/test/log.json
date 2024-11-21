@@ -1,0 +1,226 @@
+[
+    {
+        "dataset": "real_and_fake_face_5",
+        "prepare_benchmark": 1,
+        "seed": 6,
+        "train_test": "test",
+        "interpolation_resize": "color:Gray, resize:(224, 224), normalize:False, extract_mtcnn=False, extract_stats:False",
+        "preprocess_method": "fft",
+        "features_shape": [
+            409,
+            9
+        ],
+        "labels_shape": [
+            409
+        ],
+        "output_dir": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\data/processed\\real_and_fake_face_5\\test",
+        "runtime_seconds": 7.7900474071502686
+    },
+    {
+        "dataset": "real_and_fake_face_5",
+        "prepare_benchmark": 2,
+        "seed": 6,
+        "train_test": "test",
+        "interpolation_resize": "color:Gray, resize:(224, 224), normalize:False, extract_mtcnn=False, extract_stats:False",
+        "preprocess_method": "lbp, radius:1, n_points:8, method:uniform",
+        "features_shape": [
+            409,
+            10
+        ],
+        "labels_shape": [
+            409
+        ],
+        "output_dir": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\data/processed\\real_and_fake_face_5\\test",
+        "runtime_seconds": 6.5753114223480225
+    },
+    {
+        "dataset": "real_and_fake_face_5",
+        "prepare_benchmark": 3,
+        "seed": 6,
+        "train_test": "test",
+        "interpolation_resize": "color:Gray, resize:(224, 224), normalize:False, extract_mtcnn=False, extract_stats:False",
+        "preprocess_method": "sobel, kernel:3",
+        "features_shape": [
+            409,
+            9
+        ],
+        "labels_shape": [
+            409
+        ],
+        "output_dir": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\data/processed\\real_and_fake_face_5\\test",
+        "runtime_seconds": 3.7849366664886475
+    },
+    {
+        "dataset": "real_and_fake_face_5",
+        "prepare_benchmark": 4,
+        "seed": 6,
+        "train_test": "test",
+        "interpolation_resize": "color:Gray, resize:(224, 224), normalize:False, extract_mtcnn=False, extract_stats:False",
+        "preprocess_method": "clahe, clip_limit:2.0 ,tile_grid_size:(8, 8)",
+        "features_shape": [
+            409,
+            9
+        ],
+        "labels_shape": [
+            409
+        ],
+        "output_dir": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\data/processed\\real_and_fake_face_5\\test",
+        "runtime_seconds": 3.861358880996704
+    },
+    {
+        "dataset": "real_and_fake_face_5",
+        "prepare_benchmark": 5,
+        "seed": 6,
+        "train_test": "test",
+        "interpolation_resize": "color:RGB, resize:(224, 224), normalize:False, extract_mtcnn=False, extract_stats:False",
+        "preprocess_method": "fft",
+        "features_shape": [
+            409,
+            9,
+            3
+        ],
+        "labels_shape": [
+            409
+        ],
+        "output_dir": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\data/processed\\real_and_fake_face_5\\test",
+        "runtime_seconds": 6.761668682098389
+    },
+    {
+        "dataset": "real_and_fake_face_5",
+        "prepare_benchmark": 6,
+        "seed": 6,
+        "train_test": "test",
+        "interpolation_resize": "color:RGB, resize:(224, 224), normalize:False, extract_mtcnn=False, extract_stats:False",
+        "preprocess_method": "lbp, radius:1, n_points:8, method:uniform",
+        "features_shape": [
+            409,
+            10,
+            3
+        ],
+        "labels_shape": [
+            409
+        ],
+        "output_dir": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\data/processed\\real_and_fake_face_5\\test",
+        "runtime_seconds": 13.094899892807007
+    },
+    {
+        "dataset": "real_and_fake_face_5",
+        "prepare_benchmark": 7,
+        "seed": 6,
+        "train_test": "test",
+        "interpolation_resize": "color:RGB, resize:(224, 224), normalize:False, extract_mtcnn=False, extract_stats:False",
+        "preprocess_method": "sobel, kernel:3",
+        "features_shape": [
+            409,
+            9
+        ],
+        "labels_shape": [
+            409
+        ],
+        "output_dir": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\data/processed\\real_and_fake_face_5\\test",
+        "runtime_seconds": 4.896851062774658
+    },
+    {
+        "dataset": "real_and_fake_face_5",
+        "prepare_benchmark": 8,
+        "seed": 6,
+        "train_test": "test",
+        "interpolation_resize": "color:RGB, resize:(224, 224), normalize:False, extract_mtcnn=False, extract_stats:False",
+        "preprocess_method": "clahe, clip_limit:2.0 ,tile_grid_size:(8, 8)",
+        "features_shape": [
+            409,
+            9,
+            3
+        ],
+        "labels_shape": [
+            409
+        ],
+        "output_dir": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\data/processed\\real_and_fake_face_5\\test",
+        "runtime_seconds": 4.441220760345459
+    },
+    {
+        "dataset": "real_and_fake_face_5",
+        "prepare_benchmark": 9,
+        "seed": 6,
+        "train_test": "test",
+        "interpolation_resize": "color:Gray, resize:(224, 224), normalize:False, extract_mtcnn=False, extract_stats:False",
+        "preprocess_method": "fft",
+        "features_shape": [
+            409,
+            256
+        ],
+        "labels_shape": [
+            409
+        ],
+        "output_dir": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\data/processed\\real_and_fake_face_5\\test",
+        "runtime_seconds": 7.134567022323608
+    },
+    {
+        "dataset": "real_and_fake_face_5",
+        "prepare_benchmark": 10,
+        "seed": 6,
+        "train_test": "test",
+        "interpolation_resize": "color:Gray, resize:(224, 224), normalize:False, extract_mtcnn=False, extract_stats:False",
+        "preprocess_method": "lbp, radius:1, n_points:8, method:default",
+        "features_shape": [
+            409,
+            255
+        ],
+        "labels_shape": [
+            409
+        ],
+        "output_dir": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\data/processed\\real_and_fake_face_5\\test",
+        "runtime_seconds": 6.502643346786499
+    },
+    {
+        "dataset": "real_and_fake_face_5",
+        "prepare_benchmark": 11,
+        "seed": 6,
+        "train_test": "test",
+        "interpolation_resize": "color:Gray, resize:(224, 224), normalize:False, extract_mtcnn=False, extract_stats:False",
+        "preprocess_method": "sobel, kernel:3",
+        "features_shape": [
+            409,
+            256
+        ],
+        "labels_shape": [
+            409
+        ],
+        "output_dir": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\data/processed\\real_and_fake_face_5\\test",
+        "runtime_seconds": 3.711700439453125
+    },
+    {
+        "dataset": "real_and_fake_face_5",
+        "prepare_benchmark": 12,
+        "seed": 6,
+        "train_test": "test",
+        "interpolation_resize": "color:Gray, resize:(224, 224), normalize:False, extract_mtcnn=False, extract_stats:False",
+        "preprocess_method": "clahe, clip_limit:2.0 ,tile_grid_size:(8, 8)",
+        "features_shape": [
+            409,
+            256
+        ],
+        "labels_shape": [
+            409
+        ],
+        "output_dir": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\data/processed\\real_and_fake_face_5\\test",
+        "runtime_seconds": 3.6709935665130615
+    },
+    {
+        "dataset": "real_and_fake_face_5",
+        "prepare_benchmark": 11,
+        "seed": 6,
+        "train_test": "test",
+        "interpolation_resize": "color:Gray, resize:(224, 224), normalize:False, extract_mtcnn=False, extract_stats:False",
+        "preprocess_method": "sobel, kernel:3",
+        "features_shape": [
+            409,
+            9
+        ],
+        "labels_shape": [
+            409
+        ],
+        "output_dir": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\data/processed\\real_and_fake_face_5\\test",
+        "runtime_seconds": 3.8761157989501953
+    }
+]

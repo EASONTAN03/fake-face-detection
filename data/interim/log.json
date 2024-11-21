@@ -1,0 +1,137 @@
+[
+    {
+        "benchmark": 1,
+        "dataset": "real_and_fake_face",
+        "resolution": {
+            "average": [
+                600.0,
+                600.0
+            ],
+            "min": [
+                600,
+                600
+            ],
+            "max": [
+                600,
+                600
+            ]
+        },
+        "Total train data": [
+            864,
+            768
+        ],
+        "Total test data": [
+            217,
+            192
+        ],
+        "Remark": "real, fake"
+    },
+    {
+        "benchmark": 2,
+        "dataset": "real_and_fake_face",
+        "resolution": {
+            "average": [
+                600.0,
+                600.0
+            ],
+            "min": [
+                600,
+                600
+            ],
+            "max": [
+                600,
+                600
+            ]
+        },
+        "Total train data": [
+            863,
+            769
+        ],
+        "Total test data": [
+            218,
+            191
+        ],
+        "Remark": "real, fake"
+    },
+    {
+        "benchmark": 3,
+        "dataset": "real_and_fake_face",
+        "resolution": {
+            "average": [
+                600.0,
+                600.0
+            ],
+            "min": [
+                600,
+                600
+            ],
+            "max": [
+                600,
+                600
+            ]
+        },
+        "Total train data": [
+            79,
+            81
+        ],
+        "Total test data": [
+            21,
+            19
+        ],
+        "Remark": "real, fake"
+    },
+    {
+        "benchmark": 4,
+        "dataset": "real_and_fake_face",
+        "resolution": {
+            "average": [
+                600.0,
+                600.0
+            ],
+            "min": [
+                600,
+                600
+            ],
+            "max": [
+                600,
+                600
+            ]
+        },
+        "Total train data": [
+            864,
+            768
+        ],
+        "Total test data": [
+            217,
+            192
+        ],
+        "Remark": "real, fake"
+    },
+    {
+        "benchmark": 5,
+        "dataset": "real_and_fake_face",
+        "resolution": {
+            "average": [
+                600.0,
+                600.0
+            ],
+            "min": [
+                600,
+                600
+            ],
+            "max": [
+                600,
+                600
+            ]
+        },
+        "Total train data": [
+            864,
+            768
+        ],
+        "Total test data": [
+            217,
+            192
+        ],
+        "Remark": "real, fake"
+    }
+]
