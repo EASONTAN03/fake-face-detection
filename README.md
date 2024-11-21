@@ -10,7 +10,6 @@ Machine learning for real and fake face detection
 
 ```
 ├── LICENSE            <- Open-source license if one is chosen
-├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
 ├── README.md          <- The top-level README for developers using this project.
 ├── data
 │   ├── external       <- Data from third party sources.
@@ -52,3 +51,10 @@ Machine learning for real and fake face detection
 ```
 
 --------
+
+Workflow
+1. Set dataset benchmark and filepath in config.yaml, Set param for pre-process & ML in params.yaml
+2. Run make_dataset.py to split train test data
+3. Run src/prepare.py to pre-processd data into npy array (please run for train and test seperately[define in params.yaml])
+4. Run src/train.py to train model with c-v, then output final model performance (include hyperparameter tuning)
+5. For evaluate.py which is used to test external dataset (Skip train stage)
