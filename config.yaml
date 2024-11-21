@@ -14,4 +14,4 @@ results:
 configs:
   dataset: 'real_and_fake_face'
   datatype: ['training_real', 'training_fake'] #[real,fake]
-  benchmark: 2  #splited dataset in interim
+  benchmark: 5  #splited dataset in interim

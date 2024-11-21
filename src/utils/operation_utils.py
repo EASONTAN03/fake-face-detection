@@ -68,13 +68,15 @@ def split_dataset(real_images, fake_images, split_ratio, random_state):
     # Combine real and fake images
     print("Splitting dataset......")
     images = real_images + fake_images
-
+    labels = [0] * len(real_images) + [1] * len(fake_images)
     # Split the combined dataset into train and test sets
     train_images, test_images, train_labels, test_labels = train_test_split(
         images,
-        [0] * len(real_images) + [1] * len(fake_images),
+        labels,
         test_size =split_ratio,
-        random_state=random_state
+        random_state=random_state,
+        stratify=labels
+
     )
 
     # Count the number of real and fake images in the train and test sets
