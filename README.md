@@ -45,10 +45,10 @@ Machine learning for real and fake face detection
     ├── __init__.py             <- Makes fakefacedetect a Python module
     │
     │
-    ├── prepare.py              <- pre process data from data/interim 
-    ├── train.py            <- Code to train models
+    ├── prepare.py              <- pre-process data from data/interim 
+    ├── train.py                <- train models and return stats with final model
     │
-    └── evaluate              <- test model with specific dataset
+    └── evaluate                <- test model with specific dataset
 ```
 
 --------
