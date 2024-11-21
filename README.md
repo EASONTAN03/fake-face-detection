@@ -53,8 +53,9 @@ Machine learning for real and fake face detection
 --------
 
 Workflow
-1. Set dataset benchmark and filepath in config.yaml, Set param for pre-process & ML in params.yaml
-2. Run make_dataset.py to split train test data
-3. Run src/prepare.py to pre-processd data into npy array (please run for train and test seperately[define in params.yaml])
-4. Run src/train.py to train model with c-v, then output final model performance (include hyperparameter tuning)
-5. For evaluate.py which is used to test external dataset (Skip train stage)
+1. Download all dependencies from requirements.txt for python 3.10.15
+2. Set dataset benchmark and filepath in config.yaml, Set param for pre-process & ML in params.yaml
+3. Run make_dataset.py to split train test data
+4. Run src/prepare.py to pre-processd data into npy array (please run for train and test seperately[define in params.yaml])
+5. Run src/train.py to train model with c-v, then output final model performance (include hyperparameter tuning)
+6. For evaluate.py which is used to test external dataset (Skip train stage)
