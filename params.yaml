@@ -1,41 +1,61 @@
 make_dataset:
-  seed: 42
+  seed: 6
   split_data: 0
   split_ratio: 0.2
 
   
 # prepare:
 prepare:
-  benchmark: 1
+  benchmark: 10
   train_test: 'test' #test
+  color: "Gray"
   resize: [224, 224]
   normalize: False
-  method: "fft" #fft lbp sobel clahe
-  extract_stats: false
+  method: "sobel" #fft lbp sobel clahe
+  extract_mtcnn: False
+  compute_hist: True
+  extract_stats: False
+  fft:
+    bins: 256
   lbp:
     radius: 1
     n_points: 8
     method: 'default' #uniform
   sobel: 
     kernel: 3
+    bins: 256    
   clahe:
     clip_limit: 2.0
     tile_grid_size: [8,8]
+    bins: 256    
 
 
 train:
-  continue_training: False
   model_benchmark: 1
-  model: "svm" 
-  split_ratio: 0.2
+  model: "knn" 
   scaler: "standard" #standard
   svm:
-    C: [1,10,100,1000,10000] #[1] #[0.1, 1, 10]
-    gamma: [0.01,0.001,0.0001,0.00001] #'scale', 
+    C: [0.01,1,10,100,1000] #[1] #[0.1, 1, 10]
+    gamma: [0.01,1,10,100,1000] #'scale', 
     kernel: ['rbf'] #['rbf'] #['linear', 'rbf', 'poly']
   knn:
-    n_neighbors: [3, 5, 7, 9, 11]
+    n_neighbors: [3, 5, 7, 9, 11, 13, 15]
     weights: ['uniform', 'distance']
     metric: ['euclidean', 'manhattan']
+  lgbm:
+    objective: ['binary']
+    metric: ['binary_logloss']
+    num_leaves: [10,20,30,40,50]
+    learning_rate: [0.1,0.2]
+    max_depth: [5,10,15,20]
+    min_data_in_leaf: [5,10,15,20]
+    training_round: [50, 100]
+  xgboost:
+    objective: ['binary:hinge'] #binary:logistic
+    learning_rate: [0.1,0.2]
+    max_depth: [5,10,15,20]
+    min_child_weight: [5,10,15,20]
+    training_round: [50, 100]
+
 
 # evaluate:

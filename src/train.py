@@ -36,14 +36,13 @@ benchmark = config['configs']['benchmark']
 with open('../params.yaml', 'r') as file:
     params = yaml.safe_load(file)
 seed = params['make_dataset']['seed']
+split_ratio = params['make_dataset']['split_ratio']
 prepare_benchmark = params['prepare']['benchmark']
 print("Dataset:", prepare_benchmark)
 
 param_train = params['train']
-continue_training = param_train['continue_training']
 model_benchmark=param_train['model_benchmark']
 model=param_train['model']
-split_ratio=param_train['split_ratio']
 scale_features=param_train['scaler']
 model_params = param_train[f"{model}"]
 
@@ -73,6 +72,7 @@ y_test = np.load(validate_labels_path)  # Shape: (N,)
 model_path_dir=os.path.join(output_model_dir, f"{model_path}.pkl")
 
 # Flatten the images (convert 224x224 into 1D arrays for each image)
+print(X_train.shape)
 if len(X_train.shape) > 2:
     size_1=X_train.shape[1]
     size_2=X_train.shape[2]
@@ -92,21 +92,43 @@ if __name__ == "__main__":
     # First training session
     if model=="svm":
         param_grid = {
-            'svm__C': model_params['C'],
-            'svm__kernel': model_params['kernel'],
-            'svm__gamma': model_params['gamma']
+            'C_values': model_params['C'],
+            'kernels': model_params['kernel'],
+            'gammas': model_params['gamma']
         }
         print(model, param_grid)
-        trainer.train_svm(X_train, y_train, param_grid['svm__C'], param_grid['svm__kernel'], param_grid['svm__gamma'], n_splits=5)
+        trainer.train_svm(X_train, y_train, **param_grid, n_splits=5)
     elif model=="knn":
         param_grid = {
-            'knn__n_neighbors': model_params['n_neighbors'],
-            'knn__weights': model_params['weights'],
-            'knn__metric': model_params['metric']
+            'k_values': model_params['n_neighbors'],
+            'weights': model_params['weights'],
+            'metrics': model_params['metric']
         }
         print(model, param_grid)
-        trainer.train_knn(X_train, y_train, param_grid, continue_training)
-    
+        trainer.train_knn(X_train, y_train, **param_grid, n_splits=5)
+    elif model=="lgbm":
+        param_grid = {
+            'objectives': model_params['objective'],
+            'metrics': model_params['metric'],
+            'num_leaves': model_params['num_leaves'],
+            'learning_rates': model_params['learning_rate'],
+            'max_depths': model_params['max_depth'],
+            'min_leaf_list': model_params['min_data_in_leaf'],
+            'training_rounds': model_params['training_round']
+        }
+        print(model, param_grid)
+        trainer.train_lgbm(X_train, y_train, **param_grid, n_splits=5)
+    elif model=="xgboost":
+        param_grid = {
+            'objectives': model_params['objective'],
+            'learning_rates': model_params['learning_rate'],
+            'max_depths': model_params['max_depth'],
+            'min_child_list': model_params['min_child_weight'],
+            'training_rounds': model_params['training_round']
+        }
+        print(model, param_grid)
+        trainer.train_xgboost(X_train, y_train, **param_grid, n_splits=5)
+        
     # Evaluate models
     # X_test_scaled=trainer.scaler.fit_transform(X_test)
     y_pred, results = trainer.evaluate_models(X_test, y_test)
@@ -150,7 +172,7 @@ if __name__ == "__main__":
         if not file_exists:
             writer.writerow(header)
         # Write the statistics
-        writer.writerow([model_path, model_params, tp, fp, tn, fn, results["accuracy"], results["precision"], results["recall"], 
+        writer.writerow([model_path, trainer.best_params, tp, fp, tn, fn, results["accuracy"], results["precision"], results["recall"], 
                         results["specificity"], results["f1-score"], results["mcc"], results["auroc"], results["loss"]])
         
 
