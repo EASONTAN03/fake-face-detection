@@ -1,38 +1,27 @@
 make_dataset:
-  seed: 6
+  seed: 17
   split_data: 0
-  split_ratio: 0.2
-
+  split_ratio: 0.7
+  val_ratio: 0.1
+  test_ratio: 0.2
   
 # prepare:
 prepare:
-  benchmark: 10
-  train_test: 'test' #test
-  color: "Gray"
-  resize: [224, 224]
-  normalize: False
-  method: "sobel" #fft lbp sobel clahe
-  extract_mtcnn: False
-  compute_hist: True
+  benchmark: 1
+  output_type: ["train", "val", "test"]
+  color: "RGB" #Gray RGB
+  resize: [600, 600]
+  method: ["none"] #fft lbp sobel clahe none
+  compute_hist: False
   extract_stats: False
-  fft:
-    bins: 256
-  lbp:
-    radius: 1
-    n_points: 8
-    method: 'default' #uniform
-  sobel: 
-    kernel: 3
-    bins: 256    
   clahe:
-    clip_limit: 2.0
-    tile_grid_size: [8,8]
-    bins: 256    
+    clip_limit: 0.4
+    tile_grid_size: [8,8] 
 
 
 train:
   model_benchmark: 1
-  model: "knn" 
+  model: "cnn" #cnn then edit in cnn.json
   scaler: "standard" #standard
   svm:
     C: [0.01,1,10,100,1000] #[1] #[0.1, 1, 10]
@@ -58,4 +47,6 @@ train:
     training_round: [50, 100]
 
 
-# evaluate:
+evaluate:
+  model: "cnn"
+

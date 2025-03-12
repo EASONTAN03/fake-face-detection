@@ -21,7 +21,8 @@ benchmark = config['configs']['benchmark']
 with open('params.yaml', 'r') as file:
     params = yaml.safe_load(file)
 seed = params['make_dataset']['seed']
-split_ratio = params['make_dataset']['split_ratio']
+val_ratio = params['make_dataset']['val_ratio']
+test_ratio = params['make_dataset']['test_ratio']
 split_data = params['make_dataset']['split_data']
 
 real_and_fake_face_path = os.path.join(raw_data_path, dataset)
@@ -32,7 +33,9 @@ print("fake data: ",len(fake_images))
 if split_data>0:
     real_images, fake_images=utils.select_and_extract_images(real_images, fake_images, split_data, seed)
 
-train_images, test_images, train_labels, test_labels, split_details=utils.split_dataset(real_images, fake_images, split_ratio, seed)
+train_images, val_images, test_images, train_labels, val_labels, test_labels, split_details = utils.split_dataset(
+    real_images, fake_images, val_ratio, test_ratio, random_state=42
+)
 total_data=real_images+fake_images
 
 np_total_images=[cv2.imread(image).shape[:2] for image in total_data]
@@ -45,8 +48,10 @@ utils.check_delete_dir(interim_dir)
 utils.create_dir(interim_dir)
 
 train_dir = os.path.join(interim_dir, "train")
+validate_dir = os.path.join(interim_dir, "val")
 test_dir = os.path.join(interim_dir, "test")
 utils.create_dir(train_dir)
+utils.create_dir(validate_dir)
 utils.create_dir(test_dir)
 
 for i, image_path in enumerate(train_images):
@@ -60,6 +65,20 @@ for i, image_path in enumerate(train_images):
         shutil.copy(image_path, train_real_dir)  # Copy the image to the train directory
     else:
         shutil.copy(image_path, train_fake_dir)  # Copy the image to the train directory
+
+
+for i, image_path in enumerate(val_images):
+    file_name = image_path.split("/")[-1]  # Get the original file name
+    file_name = os.path.basename(file_name)
+    validate_real_dir=os.path.join(validate_dir, "real")
+    validate_fake_dir=os.path.join(validate_dir, "fake")
+    utils.create_dir(validate_real_dir)
+    utils.create_dir(validate_fake_dir)
+    if val_labels[i] == 0:
+        shutil.copy(image_path, validate_real_dir)  # Copy the image to the train directory
+    else:
+        shutil.copy(image_path, validate_fake_dir)  # Copy the image to the train directory
+
 
 for i, image_path in enumerate(test_images):
     file_name = image_path.split("/")[-1]  # Get the original file name
