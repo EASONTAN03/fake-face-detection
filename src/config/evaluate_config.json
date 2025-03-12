@@ -1,0 +1,12 @@
+{
+    "model_name": "MobileNetV2", 
+    "model_path": "real_and_fake_face_6_3\\cnn\\MobileNetV2\\2025-02-16_18-28\\model.pth",
+    "test_dir": "real_and_fake_face_6\\3\\test",
+    "input_shape": [224, 224, 3],
+    "batch_size": 64,
+    "loss_function": "cross_entropy",
+    "augmentation": {
+        "normalize_mean": [0.485, 0.456, 0.406],
+        "normalize_std": [0.229, 0.224, 0.225]
+    }
+}

@@ -14,10 +14,10 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from preprocess_utils import denormalize_img
 
+def get_filenames(directory):
+    return sorted([f for f in os.listdir(directory) if f.endswith(('.jpg', '.png', '.jpeg'))])
 
 def dict2str(model_params):
-    if model_params is None:
-        return " " 
     formatted_params = [f"{key}: {value}" for key, value in model_params.items()]
     return ', '.join(formatted_params)
 
@@ -64,35 +64,63 @@ def select_and_extract_images(real_images, fake_images, split_data=10, random_st
     print(f"Extracted {len(selected_real)} real and {len(selected_fake)} fake images")
     return selected_real, selected_fake
 
-def split_dataset(real_images, fake_images, split_ratio, random_state):
+def load_json(config_path):
+    with open(config_path, "r") as file:
+        return json.load(file)
+    
+
+def split_dataset(real_images, fake_images, val_ratio, test_ratio, random_state=42):
+    """
+    Splits the dataset into training, validation, and test sets.
+
+    Parameters:
+    - real_images: List of real image filenames
+    - fake_images: List of fake image filenames
+    - train_ratio: Fraction of data for training (e.g., 0.7)
+    - val_ratio: Fraction of data for validation (e.g., 0.15)
+    - test_ratio: Fraction of data for testing (e.g., 0.15)
+    - random_state: Random seed for reproducibility
+
+    Returns:
+    - train_images, val_images, test_images, train_labels, val_labels, test_labels
+    """
+    from sklearn.model_selection import train_test_split
+
+    print("Splitting dataset into Train, Validation, and Test...")
+
     # Combine real and fake images
-    print("Splitting dataset......")
     images = real_images + fake_images
-    labels = [0] * len(real_images) + [1] * len(fake_images)
-    # Split the combined dataset into train and test sets
-    train_images, test_images, train_labels, test_labels = train_test_split(
+    labels = [0] * len(real_images) + [1] * len(fake_images)  # 0 = Real, 1 = Fake
+
+    # First, split into train and temp (validation + test)
+    train_images, temp_images, train_labels, temp_labels = train_test_split(
         images,
         labels,
-        test_size =split_ratio,
+        test_size=(val_ratio + test_ratio),  # Reserve for validation & test
         random_state=random_state,
-        stratify=labels
-
+        stratify=labels  # Ensure class balance
     )
 
-    # Count the number of real and fake images in the train and test sets
-    train_real_count = len([label for label in train_labels if label == 0])
-    train_fake_count = len(train_labels) - train_real_count
-    test_real_count = len([label for label in test_labels if label == 0])
-    test_fake_count = len(test_labels) - test_real_count
+    # Split temp set into validation and test
+    val_images, test_images, val_labels, test_labels = train_test_split(
+        temp_images,
+        temp_labels,
+        test_size=(test_ratio / (val_ratio + test_ratio)),  # Adjust ratio
+        random_state=random_state,
+        stratify=temp_labels  # Ensure class balance
+    )
 
-    split_details={
-    "Total train data": [train_real_count, train_fake_count],
-    "Total test data": [test_real_count, test_fake_count],
-    "Remark": "real, fake"
-    }
-    
-    print("Done splitting dataset")
-    return train_images, test_images, train_labels, test_labels, split_details
+    # Detailed split summary
+    split_details = {
+        "Dataset Split": f"Train={len(train_images)}, Val={len(val_images)}, Test={len(test_images)}",
+        "Total train data": [sum(1 for label in train_labels if label == 0), sum(1 for label in train_labels if label == 1)],
+        "Total val data": [sum(1 for label in val_labels if label == 0), sum(1 for label in val_labels if label == 1)],
+        "Total test data": [sum(1 for label in test_labels if label == 0), sum(1 for label in test_labels if label == 1)],
+        "Remark": "real, fake"
+    }    
+    print(split_details)
+
+    return train_images, val_images, test_images, train_labels, val_labels, test_labels, split_details
 
 def write_csv(stats_dict, dir, file_name):
     # Check if the file exists and has the correct column names
@@ -197,17 +225,12 @@ def read_images(image_dir):
     images = []
     
     # Loop through all files in the directory
-    for filename in os.listdir(image_dir):
-        if filename.endswith('.jpg') or filename.endswith('.jpeg'):  # Check for JPG files
-            img_path = os.path.join(image_dir, filename)
-            img = cv2.imread(img_path)  # Read the image using cv2
-            
-            if img is None:
-                print(f"Error loading image: {img_path}")
-                continue
-                
-            images.append(img)  # Append the loaded image to the list
-    return images
+    filenames_list=get_filenames(image_dir)
+    for filename in filenames_list:
+        img_path = os.path.join(image_dir, filename)
+        img = cv2.imread(img_path)  # Read the image using cv2
+        images.append(img)  # Append the loaded image to the list
+    return images, filenames_list
 
 
 def plot_images(original_images, processed_images, feature_images, labels, num_images=6):

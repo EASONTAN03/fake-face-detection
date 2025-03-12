@@ -63,8 +63,8 @@ def apply_fft(images, bins, compute_hist):
         list of np.ndarray: List of FFT-processed images.
     """
     channel_histograms = []
-    print(images.shape)
-    if len(images.shape) == 4:
+    # len(img.shape) == 3 and img.shape[2] == 3:
+    if len(images[0].shape) == 4:
         for channel in range(3):
             # Compute FFT for each channel separately
             f = np.fft.fft2(images[:, :, :, channel])
@@ -130,7 +130,6 @@ def apply_lbp(images, radius=1, n_points=8, method='default', compute_hist=False
                     lbp_channels.append(channel_lbp)
             # Stack the histograms or LBP outputs across the 3 channels
             processed_images.append(np.stack(lbp_channels, axis=-1))  # Shape: (height, width, 3)
-
         # Process a single-channel grayscale image
         elif len(img.shape) == 2:
             lbp = local_binary_pattern(img, n_points, radius, method)
@@ -198,7 +197,6 @@ def apply_clahe(images, clip_limit=2.0, tile_grid_size=(8, 8), bins=9, compute_h
     processed_images = []
 
     for img in images:
-    # Apply CLAHE to the grayscale image
         if len(images.shape) == 4:
             channel_histograms = []
             for channel in range(3):
@@ -217,6 +215,7 @@ def apply_clahe(images, clip_limit=2.0, tile_grid_size=(8, 8), bins=9, compute_h
             channel_histograms = np.stack(channel_histograms, axis=-1)  # Shape: (409, 18, 3)
             processed_images.append(channel_histograms)
         else:
+            # Apply CLAHE to the grayscale image
             clahe_image = clahe.apply(img)
             if compute_hist:
                 global_min = np.min(clahe_image)
@@ -244,6 +243,52 @@ def extract_statistics(image):
     stats_array = np.array(stats_list)
 
     return stats_array
+
+import os
+import cv2
+import numpy as np
+from PIL import Image, ImageChops, ImageEnhance
+
+def apply_ela(images, quality=95, scale=10):
+    """
+    Apply Error Level Analysis (ELA) to detect compression inconsistencies in images.
+
+    Args:
+        images (list of np.ndarray): List of images to process.
+        quality (int): JPEG re-compression quality (lower values exaggerate ELA artifacts).
+        scale (int): Scaling factor for amplifying ELA differences.
+
+    Returns:
+        list of np.ndarray: List of ELA-processed images.
+    """
+    processed_images = []
+
+    for img in images:
+        # Convert np.ndarray to PIL Image
+        pil_img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)) if isinstance(img, np.ndarray) else img
+
+        # Save the image as JPEG with a given quality
+        temp_path = "temp_ela.jpg"
+        pil_img.save(temp_path, "JPEG", quality=quality)
+
+        # Open the re-saved image
+        compressed_img = Image.open(temp_path)
+
+        # Compute the difference between the original and recompressed image
+        diff = ImageChops.difference(pil_img, compressed_img)
+
+        # Enhance the difference for visualization
+        extrema = diff.getextrema()
+        max_diff = max([ex[1] for ex in extrema])
+        scale_factor = 255.0 / max_diff 
+        ela_img = ImageEnhance.Brightness(diff).enhance(scale * scale_factor)
+        # Convert back to np.ndarray
+        processed_images.append(np.array(ela_img))
+    os.remove(temp_path)
+
+    return processed_images
+
+
 
 # def extract_statistics(gray_image):
 #     # Define patch size

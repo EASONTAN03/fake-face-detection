@@ -39,7 +39,8 @@ random.seed(seed)
 # Prepare dataset parameters
 param_prepare = params['prepare']
 prepare_benchmark = param_prepare['benchmark']
-train_test = param_prepare['train_test']
+output_type = param_prepare['output_type']
+output_format=param_prepare['output_format']
 color=param_prepare['color']
 resize = tuple(param_prepare['resize'])
 normalize = param_prepare['normalize']
@@ -50,117 +51,176 @@ extract_mtcnn=param_prepare['extract_mtcnn']
 # Define input and output directories
 data_dir = f'{dataset}_{benchmark}'
 input_dir = os.path.join(interim_data_path, data_dir)
-output_dir = os.path.join(processed_data_path, data_dir, train_test)
-images_dir = os.path.join(input_dir, train_test)
+output_dir = os.path.join(processed_data_path, data_dir)
 datatype=["real","fake"]
+
 mtcnn_features_path=os.path.join(output_dir, f'features_mtcnn.npy')
 mtcnn_labels_path=os.path.join(output_dir, f'labels_mtcnn.npy')
 
-if extract_mtcnn==True and not os.path.exists(mtcnn_features_path):
-    real_images=np.array(utils.read_images(os.path.join(images_dir,datatype[0])))
-    fake_images=np.array(utils.read_images(os.path.join(images_dir,datatype[1])))
-    images = np.concatenate((real_images, fake_images))
-    labels = np.array([0] * len(real_images) + [1] * len(fake_images))
-    # Resize and normalize images
-    ref_images, resize_images = [], []
-    for img in images:
-        ori, norm = preprocess.resize_and_normalize(img, resize, normalize)
-        ref_images.append(ori)
-        resize_images.append(norm)
-    mtcnn_images=[preprocess.extract_with_mtcnn(img) for img in resize_images]
-    resize_images=mtcnn_images
-    np.save(mtcnn_features_path,np.array(resize_images))
-    np.save(mtcnn_labels_path,np.array(labels))
+input_type_dir=[]
+output_type_dir=[]
 
-elif extract_mtcnn==True: 
-    resize_images=np.load(mtcnn_features_path)
-    labels=np.load(mtcnn_labels_path)
-else:
-    real_images=np.array(utils.read_images(os.path.join(images_dir,datatype[0])))
-    fake_images=np.array(utils.read_images(os.path.join(images_dir,datatype[1])))
-    images = np.concatenate((real_images, fake_images))
-    labels = np.array([0] * len(real_images) + [1] * len(fake_images))
-    # Resize and normalize images
-    ref_images, resize_images = [], []
-    for img in images:
-        ori, norm = preprocess.resize_and_normalize(img, resize, normalize)
-        ref_images.append(ori)
-        resize_images.append(norm)
+if "train"in output_type:
+    input_type_dir.append(os.path.join(input_dir, "train"))
+    output_type_dir.append(os.path.join(output_dir, str(prepare_benchmark), "train"))
+if "val"in output_type:
+    input_type_dir.append(os.path.join(input_dir, "val"))
+    output_type_dir.append(os.path.join(output_dir, str(prepare_benchmark), "val"))
+if "test"in output_type:
+    input_type_dir.append(os.path.join(input_dir, "test"))
+    output_type_dir.append(os.path.join(output_dir, str(prepare_benchmark), "test"))
 
-if color == 'YCbCr':
-    resize_images = [cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb) for img in resize_images]
-elif color == 'Gray':
-    resize_images = [cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) for img in resize_images]
 
-# ref_images = np.array(ref_images)
-resize_images = np.array(resize_images)
+for index, dir in enumerate(output_type_dir):
+    utils.create_dir(dir)
+    if extract_mtcnn==True and os.path.exists(mtcnn_features_path): 
+        resize_images=np.load(mtcnn_features_path)
+        labels=np.load(mtcnn_labels_path)
+    else :
+        real_images, real_filenames=utils.read_images(os.path.join(input_type_dir[index],datatype[0]))
+        fake_images, fake_filenames=utils.read_images(os.path.join(input_type_dir[index],datatype[1]))
+        real_images=np.array(real_images)
+        fake_images=np.array(fake_images)
+        filenames=real_filenames+fake_filenames
+        images = np.concatenate((real_images, fake_images))
+        labels = np.array([0] * len(real_images) + [1] * len(fake_images))
+        # Resize and normalize images
+        ref_images, resize_images = [], []
+        for img in images:
+            ori, norm = preprocess.resize_and_normalize(img, resize, normalize)
+            ref_images.append(ori)
+            resize_images.append(norm)
+        if extract_mtcnn==True:
+            mtcnn_images=[preprocess.extract_with_mtcnn(img) for img in resize_images]
+            resize_images=mtcnn_images
+            np.save(mtcnn_features_path,np.array(resize_images))
+            np.save(mtcnn_labels_path,np.array(labels))
 
-# Shuffle images and labels
-indices = np.arange(resize_images.shape[0])
-np.random.shuffle(indices)
-# ref_images = ref_images[indices]
-resize_images = resize_images[indices]
-labels = labels[indices]
+    if color == 'YCbCr':
+        resize_images = [cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb) for img in resize_images]
+    elif color == 'Gray':
+        resize_images = [cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) for img in resize_images]
+    elif color == 'RGB':
+        resize_images = [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in resize_images]
 
-# Apply texture extraction/edge detection techniques
-compute_hist=param_prepare['compute_hist']
-if preprocess_method == "fft":
-    bins = param_prepare['fft']['bins']
-    processed_images = preprocess.apply_fft(resize_images, bins, compute_hist)
-    preprocess_method = f'{preprocess_method}'
-    print(processed_images)
-elif preprocess_method == "lbp":
-    radius = param_prepare['lbp']['radius']
-    n_points = param_prepare['lbp']['n_points']
-    method = param_prepare['lbp']['method']
-    processed_images = preprocess.apply_lbp(resize_images, radius, n_points, method, compute_hist)
-    preprocess_method = f'{preprocess_method}, radius:{radius}, n_points:{n_points}, method:{method}'
-elif preprocess_method == "sobel":
-    kernel = param_prepare['sobel']['kernel']
-    bins = param_prepare['sobel']['bins']
-    processed_images = preprocess.apply_sobel(resize_images, kernel, bins, compute_hist)
-    preprocess_method = f'{preprocess_method}, kernel:{kernel}'
-elif preprocess_method == "clahe":
-    clip_limit = param_prepare['clahe']['clip_limit']
-    tile_grid_size = tuple(param_prepare['clahe']['tile_grid_size'])
-    bins = param_prepare['clahe']['bins']
-    processed_images = preprocess.apply_clahe(resize_images, clip_limit, tile_grid_size, bins, compute_hist)
-    preprocess_method = f'{preprocess_method}, clip_limit:{clip_limit} ,tile_grid_size:{tile_grid_size}'
-elif preprocess_method == "none":
-    processed_images = resize_images
-    preprocess_method = f'{preprocess_method}'
+    # ref_images = np.array(ref_images)
+    # resize_images = np.array(resize_images)
+    processed_images = np.array(resize_images)
 
-processed_images = np.array(processed_images, np.float32)
+    # Shuffle images and labels
+    # indices = np.arange(resize_images.shape[0])
+    # np.random.shuffle(indices)
+    # ref_images = ref_images[indices]
 
-if extract_stats==True:
-    features = np.array([preprocess.extract_statistics(img) for img in processed_images])
-else:
-    features=processed_images
+    # processed_images = resize_images[indices]
+    # labels = labels[indices]
+    # filenames = np.array(filenames)[indices] 
+    # filenames = filenames.tolist()
 
-# Save preprocessed images and labels
-utils.create_dir(output_dir)
-np.save(os.path.join(output_dir, f'features_{prepare_benchmark}.npy'), features)
-np.save(os.path.join(output_dir, f'labels_{prepare_benchmark}.npy'), labels)
-print(f"Data has been successfully preprocessed and saved to {output_dir}")
+    compute_hist=param_prepare['compute_hist']
+
+    # Apply texture extraction/edge detection techniques
+
+
+    preprocess_method_str=[]
+    if "clahe" in preprocess_method:
+        clip_limit = param_prepare['clahe']['clip_limit']
+        tile_grid_size = tuple(param_prepare['clahe']['tile_grid_size'])
+        bins = param_prepare['clahe']['bins']
+        processed_images = preprocess.apply_clahe(processed_images, clip_limit, tile_grid_size, bins, compute_hist)
+        preprocess_method_str.append(f'{preprocess_method}, clip_limit:{clip_limit} ,tile_grid_size:{tile_grid_size}')
+    if "lbp" in preprocess_method:
+        radius = param_prepare['lbp']['radius']
+        n_points = param_prepare['lbp']['n_points']
+        method = param_prepare['lbp']['method']
+        processed_images = preprocess.apply_lbp(processed_images, radius, n_points, method, compute_hist)
+        preprocess_method_str.append(f'{preprocess_method}, radius:{radius}, n_points:{n_points}, method:{method}')
+    if "sobel" in preprocess_method:
+        kernel = param_prepare['sobel']['kernel']
+        bins = param_prepare['sobel']['bins']
+        processed_images = preprocess.apply_sobel(processed_images, kernel, bins, compute_hist)
+        preprocess_method_str.append(f'{preprocess_method}, kernel:{kernel}')
+    if "fft" in preprocess_method:
+        bins = param_prepare['fft']['bins']
+        processed_images = preprocess.apply_fft(resize_images, bins, compute_hist)
+        preprocess_method_str.append(f'{preprocess_method}')
+    if "ela" in preprocess_method:
+        processed_images = preprocess.apply_ela(resize_images)
+        preprocess_method_str.append(f'{preprocess_method}')       
+    if "none" in preprocess_method:
+        preprocess_method_str.append(f'{preprocess_method}')
+
+    processed_images = np.array(processed_images, np.float32)
+
+    if extract_stats==True:
+        features = np.array([preprocess.extract_statistics(img) for img in processed_images])
+    else:
+        features=processed_images
+
+    # Save preprocessed images and labels
+    utils.create_dir(output_dir)
+    if output_format == 'npy':
+        np.save(os.path.join(output_dir, f'features_{prepare_benchmark}.npy'), features)
+        np.save(os.path.join(output_dir, f'labels_{prepare_benchmark}.npy'), labels)
+
+    elif output_format == 'jpg':
+        output_image_dir = output_type_dir[index]
+        utils.create_dir(output_image_dir)
+        real_2save_dir=os.path.join(output_image_dir, "real")
+        fake_2save_dir=os.path.join(output_image_dir, "fake")
+        utils.create_dir(real_2save_dir)
+        utils.create_dir(fake_2save_dir)
+
+        for img, filename, label in zip(processed_images, filenames, labels):
+            if img.ndim == 2:  # If the image is grayscale, convert it to 3-channel grayscale RGB
+                img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+            else:  # If it's already in 3 channels (BGR), convert to RGB
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+            if label == 0:
+                image_path = os.path.join(real_2save_dir, filename)  # Keep original filename
+                cv2.imwrite(image_path, img)  # Save image as JPG
+            elif label == 1:
+                image_path = os.path.join(fake_2save_dir, filename)  # Keep original filename
+                cv2.imwrite(image_path, img)  # Save image as JPG
+            else: 
+                print(f"Invalid label for image {filename}")
 
 # Calculate the total runtime
 end_time = time.time()
 runtime = end_time - start_time
 print(f"Total runtime: {runtime:.2f} seconds")
 
-log_data = {
-    "dataset": data_dir,
-    "prepare_benchmark": prepare_benchmark,
-    "seed": seed,
-    "train_test": train_test,
-    "interpolation_resize": f"color:{color}, resize:{resize}, normalize:{normalize}, extract_mtcnn={extract_mtcnn}, extract_stats:{extract_stats}",
-    "preprocess_method": preprocess_method,
-    "features_shape": features.shape,
-    "labels_shape": labels.shape,
-    "output_dir": output_dir,
-    "runtime_seconds": runtime  # Log the runtime
-}
+if output_format == 'npy':
+    log_data = {
+        "dataset": data_dir,
+        "prepare_benchmark": prepare_benchmark,
+        "seed": seed,
+        "interpolation_resize": f"color:{color}, resize:{resize}, normalize:{normalize}, extract_mtcnn={extract_mtcnn}, extract_stats:{extract_stats}",
+        "preprocess_method": preprocess_method_str,
+        "features_shape": features.shape,
+        "labels_shape": labels.shape,
+        "output_dir": output_dir,
+        "runtime_seconds": runtime  # Log the runtime
+    }
+
+else:
+    log_data = {
+        "dataset": data_dir,
+        "prepare_benchmark": prepare_benchmark,
+        "seed": seed,
+        "interpolation_resize": f"color:{color}, resize:{resize}, normalize:{normalize}, extract_mtcnn={extract_mtcnn}, extract_stats:{extract_stats}",
+        "preprocess_method": preprocess_method_str,
+        "output_dir": output_dir,
+        "runtime_seconds": runtime  # Log the runtime
+    }
+
 
 # Path to log file
 log_file_path = os.path.join(output_dir, "log.json")
 utils.write_json(log_data, log_file_path)
+        
+print(f"Data has been successfully preprocessed and saved to {output_dir}")
+
+
+        
