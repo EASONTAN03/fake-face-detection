@@ -4,18 +4,20 @@ import json
 import csv
 import pickle
 from sklearn.metrics import confusion_matrix
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, roc_curve, f1_score
+from fvcore.nn import FlopCountAnalysis
 # from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, make_scorer, log_loss, hinge_loss
 # from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, learning_curve, StratifiedKFold
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.optim.lr_scheduler as lr_scheduler
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets, models
 from torchsummary import summary
 import matplotlib.pyplot as plt
-from datetime import datetime
+import time
 
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
@@ -34,66 +36,45 @@ class BaseCNN(nn.Module):
     def forward(self, x):
         raise NotImplementedError("Subclasses must implement forward()")
 
-class MobileNetCNN(BaseCNN):
-    def __init__(self, channel, num_classes):
-        super(MobileNetCNN, self).__init__(num_classes)
-        self.model = models.mobilenet_v2(pretrained=True)
-
-        if channel==1:
-            # Modify first layer to accept 1-channel input instead of 3
-            in_features = self.model.features[0][0].in_channels  # Get original input channels
-            self.model.features[0][0] = nn.Conv2d(1, in_features, kernel_size=3, stride=2, padding=1, bias=False)
-
-        self.model.classifier[1] = nn.Linear(self.model.last_channel, num_classes)
-    
-    def forward(self, x):
-        return self.model(x)
-
-class ResNetCNN(BaseCNN):
-    def __init__(self, channel, num_classes):
-        super(ResNetCNN, self).__init__(num_classes)
-        self.model = models.resnet50(pretrained=True)
-
-        if channel==1:
-            # Modify first layer to accept 1-channel input instead of 3
-            in_features = self.model.features[0][0].in_channels  # Get original input channels
-            self.model.features[0][0] = nn.Conv2d(1, in_features, kernel_size=3, stride=2, padding=1, bias=False)
-
-        self.model.fc = nn.Linear(self.model.fc.in_features, num_classes)
-    
-    def forward(self, x):
-        return self.model(x)
-
-class VGGCNN(BaseCNN):
-    def __init__(self, channel, num_classes):
-        super(VGGCNN, self).__init__(num_classes)
-        self.model = models.vgg16(pretrained=True)
+class EfficientNet(BaseCNN):
+    def __init__(self, num_classes):
+        super(EfficientNet, self).__init__(num_classes)
         
-        if channel==1:
-            # Modify first layer to accept 1-channel input instead of 3
-            in_features = self.model.features[0][0].in_channels  # Get original input channels
-            self.model.features[0][0] = nn.Conv2d(1, in_features, kernel_size=3, stride=2, padding=1, bias=False)
+        # Load EfficientNet-B0 model
+        self.model = models.efficientnet_b0(pretrained=True)
 
-        self.model.classifier[6] = nn.Linear(self.model.classifier[6].in_features, num_classes)
-    
+        # Replace the final classifier
+        in_features = self.model.classifier[1].in_features
+        self.model.classifier[1] = nn.Linear(in_features, num_classes)
+        # self.model.classifier = nn.Sequential(
+        #     nn.Linear(in_features, 1280),
+        #     nn.ReLU(),
+        #     nn.Dropout(p=0.4),  # 🔹 Increased dropout from default (0.2) to 0.4
+        #     nn.Linear(1280, num_classes)
+        # )
+
+
     def forward(self, x):
         return self.model(x)
 
-class XceptionCNN(BaseCNN):
-    def __init__(self, channel, num_classes):
-        super(XceptionCNN, self).__init__(num_classes)
-        self.model = models.efficientnet_b0(pretrained=True)  # Using EfficientNet as an Xception alternative
-        
-        if channel==1:
-            # Modify first layer to accept 1-channel input instead of 3
-            first_conv_layer = self.model.features[0][0] # Get original input channels
-            self.model.features[0][0] = nn.Conv2d(1, first_conv_layer.out_channels, kernel_size=3, stride=2, padding=1, bias=False)
+class MobileNet(BaseCNN):
+    def __init__(self, num_classes):
+        super(MobileNet, self).__init__(num_classes)
+        self.model = models.mobilenet_v3_large(pretrained=True)
 
-        self.model.classifier[1] = nn.Linear(self.model.classifier[1].in_features, num_classes)
-    
+        in_features = self.model.classifier[3].in_features
+        self.model.classifier[3] = nn.Linear(in_features, num_classes)
+
+        in_features = self.model.classifier[0].in_features  # This is 960 in MobileNetV3 Large
+        # self.model.classifier = nn.Sequential(
+        #     nn.Linear(in_features, 1280),  # Correct input size from 960 to 1280
+        #     nn.Hardswish(),
+        #     nn.Dropout(p=0.4),  # Increased dropout to prevent overfitting
+        #     nn.Linear(1280, num_classes)  # Output to match number of classes
+        # )
+
     def forward(self, x):
-        return self.model(x)    
-    
+        return self.model(x)
 
 class CNNTrainer:
     """
@@ -107,11 +88,8 @@ class CNNTrainer:
         Initializes training with a model class and JSON config.
         """
         MODEL_MAPPING = {
-            "BaseCNN": BaseCNN,
-            "Xception": XceptionCNN,
-            "ResNet50": ResNetCNN,
-            "MobileNetV2": MobileNetCNN,
-            "VGG16": VGGCNN
+            "EfficientNet": EfficientNet,
+            "MobileNet": MobileNet,
         }
 
         model_name=  MODEL_MAPPING.get(self.config["model_name"])
@@ -119,7 +97,8 @@ class CNNTrainer:
 
         if model_name is None:
             raise ValueError(f"Invalid model name '{self.config['model_name']}' in config file.")
-        self.model = model_name(channel=self.config["input_shape"][2], num_classes=num_classes).to(self.device)
+        # self.model = model_name(channel=self.config["input_shape"][2], num_classes=num_classes).to(self.device)
+        self.model = model_name(num_classes=num_classes).to(self.device)
 
         self.loss_function = self.get_loss_function()
 
@@ -138,6 +117,7 @@ class CNNTrainer:
                 print(f"❌ Error loading model: {e}")
         else:
             self.optimizer = self.get_optimizer()
+            self.scheduler = self.get_scheduler()  # ✅ Add LR Scheduler
             self.output_model_dir = output_model_dir
             os.makedirs(output_model_dir, exist_ok=True)
             
@@ -156,17 +136,29 @@ class CNNTrainer:
     def get_optimizer(self):
         """Returns the optimizer defined in the JSON config."""
         optimizers = {
-            "adam": optim.Adam(self.model.parameters(), lr=self.config["learning_rate"]),
-            "sgd": optim.SGD(self.model.parameters(), lr=self.config["learning_rate"], momentum=0.9),
-            "rmsprop": optim.RMSprop(self.model.parameters(), lr=self.config["learning_rate"])
+            "adam": optim.Adam(self.model.parameters(), lr=self.config["learning_rate"], weight_decay=1e-4),
+            # "adam": optim.Adam(self.model.parameters(), lr=self.config["learning_rate"]),
+            "sgd": optim.SGD(self.model.parameters(), lr=self.config["learning_rate"], momentum=0.9, weight_decay=1e-4),
+            # "rmsprop": optim.RMSprop(self.model.parameters(), lr=self.config["learning_rate"])
         }
-        return optimizers.get(self.config["optimizer"], optim.Adam(self.model.parameters(), lr=0.001))
+        return optimizers.get(self.config["optimizer"], optim.Adam(self.model.parameters(), lr=0.001, weight_decay=1e-4))
+
+    def get_scheduler(self):
+        """Returns the Cosine Annealing Learning Rate Scheduler."""
+        if "scheduler" in self.config and self.config["scheduler"]["type"] == "cosine_annealing":
+            return lr_scheduler.CosineAnnealingLR(
+                self.optimizer, 
+                T_max=self.config["scheduler"]["T_max"], 
+                eta_min=self.config["scheduler"]["eta_min"]
+            )
+        return None  # No scheduler if not specified
 
     def get_loss_function(self):
         """Returns the loss function specified in the JSON config."""
         loss_functions = {
             "cross_entropy": nn.CrossEntropyLoss(),
-            "mse": nn.MSELoss()
+            "mse": nn.MSELoss(),
+            "bce_logit": nn.BCEWithLogitsLoss()
         }
         return loss_functions.get(self.config["loss_function"], nn.CrossEntropyLoss())
 
@@ -212,31 +204,36 @@ class CNNTrainer:
 
         for epoch in range(start_epoch, self.config["epochs"]):
             self.model.train()
-            train_loss, correct_train = 0.0, 0
+            wrong_train, correct_train = 0.0, 0
             for images, labels in train_loader:
                 images, labels = images.to(self.device), labels.to(self.device)
                 self.optimizer.zero_grad()
-                outputs = self.model(images)
-                loss = self.loss_function(outputs, labels)
+                outputs = self.model(images) #.squeeze(dim=1)  # Remove extra dimension from outputs
+                # labels = labels.float()  # Reshape labels to match outputs
+                loss = self.loss_function(outputs, labels)  # Compute BCE loss
                 loss.backward()
                 self.optimizer.step()
-                train_loss += loss.item()
+                wrong_train += loss.item() * images.size(0) 
                 correct_train += (outputs.argmax(1) == labels).sum().item()
 
-            val_loss, correct_val = 0.0, 0
+            wrong_val, correct_val = 0.0, 0
             self.model.eval()
             with torch.no_grad():
                 for images, labels in val_loader:
                     images, labels = images.to(self.device), labels.to(self.device)
                     outputs = self.model(images)
                     loss = self.loss_function(outputs, labels)
-                    val_loss += loss.item()
+                    wrong_val += loss.item() * images.size(0) 
                     correct_val += (outputs.argmax(1) == labels).sum().item()
+
+            train_loss = wrong_train / len(train_loader.dataset)
+            val_loss = wrong_val / len(val_loader.dataset)
 
             train_acc = correct_train / len(train_loader.dataset)
             val_acc = correct_val / len(val_loader.dataset)
-            history["train_loss"].append(train_loss / len(train_loader))
-            history["val_loss"].append(val_loss / len(val_loader))
+
+            history["train_loss"].append(train_loss)
+            history["val_loss"].append(val_loss)
             history["train_acc"].append(train_acc)
             history["val_acc"].append(val_acc)
 
@@ -272,49 +269,19 @@ class CNNTrainer:
             if self.early_stopping_counter >= self.config["callbacks"]["early_stopping"]["patience"]:
                 print(f"Early stopping triggered at epoch {epoch+1}")
                 break
+        
+            if self.scheduler is not None:
+                self.scheduler.step()
 
-            # Reduce LR on Plateau
-            if self.early_stopping_counter >= self.config["callbacks"]["reduce_lr"]["patience"]:
-                print("lr patience reached")
-                old_lr = self.optimizer.param_groups[0]['lr']
-                self.optimizer.param_groups[0]['lr'] *= self.config["callbacks"]["reduce_lr"]["factor"]
-                print(f"Learning rate reduced from {old_lr} to {self.optimizer.param_groups[0]['lr']}")
+            # # Reduce LR on Plateau
+            # if self.early_stopping_counter >= self.config["callbacks"]["reduce_lr"]["patience"]:
+            #     print("lr patience reached")
+            #     old_lr = self.optimizer.param_groups[0]['lr']
+            #     self.optimizer.param_groups[0]['lr'] *= self.config["callbacks"]["reduce_lr"]["factor"]
+            #     print(f"Learning rate reduced from {old_lr} to {self.optimizer.param_groups[0]['lr']}")
 
         return history
     
-    def evaluate_model(self, testloader):
-        self.model.eval()
-        running_loss = 0.0
-        all_preds = []
-        all_labels = []
-        image_paths = []  # Store test image paths
-
-        with torch.no_grad():
-            for batch_idx, (inputs, labels) in enumerate(testloader):
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
-
-                outputs = self.model(inputs)
-                loss = self.loss_function(outputs, labels)
-                running_loss += loss.item()
-
-                _, predicted = torch.max(outputs, 1)
-
-                all_preds.extend(predicted.cpu().numpy())  # Convert tensor to NumPy array
-                all_labels.extend(labels.cpu().numpy())  # Convert tensor to NumPy array
-
-                # Get image paths from dataset
-                batch_paths = [testloader.dataset.imgs[i][0] for i in range(batch_idx * testloader.batch_size, 
-                                                                            batch_idx * testloader.batch_size + len(labels))]
-                image_paths.extend(batch_paths)
-
-        all_preds = np.array(all_preds)
-        all_labels = np.array(all_labels)
-        accuracy = (all_preds == all_labels).mean()
-        loss = running_loss / len(testloader)
-        results=self.display_performance(all_preds,all_labels)
-        
-        return image_paths, all_preds, all_labels, accuracy, loss, results
-
     def display_performance(self, all_preds, all_labels, target_names=['real','fake']):
         print(f"✅ Debug: all_preds type: {type(all_preds)}, all_labels type: {type(all_labels)}")
         print(f"✅ Debug: all_preds shape: {len(all_preds)}, all_labels shape: {len(all_labels)}")
@@ -330,22 +297,101 @@ class CNNTrainer:
         # Extract True Positives (TP), False Positives (FP), True Negatives (TN), and False Negatives (FN)
         tn, fp, fn, tp = cm.ravel()
         results = {
-            'precision': report['fake']['precision'],
-            'recall': report['fake']['recall'],
-            'f1-score': report['fake']['f1-score'],
             'tp': tp,
             'fp': fp,
             'tn': tn,
-            'fn': fn
+            'fn': fn,
+            'accuracy': report['accuracy'],
+            'precision': report['fake']['precision'],
+            'recall': report['fake']['recall'],
+            'f1-score': report['fake']['f1-score']
         }
         
         return results
 
-        
+    def evaluate_model(self, testloader):
+        self.model.eval()
+        all_preds, all_labels, pred_probs, image_paths = [], [], [], []
+        inference_times = []
+        wrong_train=0.0
+
+        with torch.no_grad():
+            for batch_idx, (inputs, labels) in enumerate(testloader):
+                inputs, labels = inputs.to(self.device), labels.to(self.device)
+
+                start_time = time.time()
+                outputs = self.model(inputs)
+                inference_times.append(time.time() - start_time)
+
+                loss = self.loss_function(outputs, labels)
+                wrong_train += loss.item() * inputs.size(0) 
+
+                # Calculate probabilities
+                probabilities = torch.softmax(outputs, dim=1)[:, 1]  # Probabilities for "fake" class
+                _, predicted = torch.max(outputs, 1)
+
+                all_preds.extend(predicted.cpu().numpy())
+                all_labels.extend(labels.cpu().numpy())
+                pred_probs.extend(probabilities.cpu().numpy())
+
+                # Store image paths
+                batch_paths = [testloader.dataset.imgs[i][0] for i in range(batch_idx * testloader.batch_size, batch_idx * testloader.batch_size + len(labels))]
+                image_paths.extend(batch_paths)
+
+        test_loss = wrong_train / len(testloader.dataset)
+        all_preds = np.array(all_preds)
+        all_labels = np.array(all_labels)
+        pred_probs = np.array(pred_probs)
+
+        results=self.display_performance(all_preds,all_labels)
+        auc_roc = roc_auc_score(all_labels, pred_probs)
+        avg_inference_time = np.mean(inference_times) * 1000  # Convert to milliseconds
+
+        # Calculate FLOPs
+        dummy_input = torch.randn(1, self.config["input_shape"][2], self.config["input_shape"][0], self.config["input_shape"][1]).to(self.device)
+        flops = FlopCountAnalysis(self.model, dummy_input)
+        total_flops = flops.total() / 1e9  # GFLOPs
+
+        # Add at the end:
+        add_result = {
+            'auc_roc': auc_roc,
+            'loss': test_loss,
+            'inference_time_ms': avg_inference_time,
+            'flops_giga': total_flops,
+        }
+
+        results = {**results, **add_result}
+
+        print("\nEvaluation Metrics:")
+        print(f"AUC-ROC: {auc_roc:.4f}")
+        print(f"Average Inference Time: {avg_inference_time:.2f} ms")
+        print(f"Total FLOPs: {total_flops:.2f} GFLOPs")
+        print(f"Test Loss: {test_loss:.4f}")
+
+        self.save_aucroc(all_labels, pred_probs, auc_roc)
+
+        return image_paths, all_preds, all_labels, results
+
     def save_model(self, filename="model.pth"):
         """Saves the model weights in PyTorch format."""
         torch.save(self.model.state_dict(), os.path.join(self.output_model_dir, filename))
         print(f"Model saved at: {os.path.join(self.output_model_dir, filename)}")
+
+    def save_aucroc(self, all_labels, pred_probs, auc_roc):
+        fpr, tpr, _ = roc_curve(all_labels, pred_probs)
+        plt.figure(figsize=(8, 6))
+        plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {auc_roc:.2f})')
+        plt.plot([0, 1], [0, 1], color='gray', lw=2, linestyle='--')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('Receiver Operating Characteristic (ROC) Curve')
+        plt.legend(loc="lower right")
+        roc_curve_path = os.path.join(self.output_model_dir, "roc_curve.png")
+        plt.savefig(roc_curve_path)
+        plt.close()
+        print(f"✅ ROC curve saved at: {roc_curve_path}")
 
     def save_training_history(self, history, filename="history.pkl"):
         """Saves training history to a pickle file."""
@@ -365,4 +411,5 @@ class CNNTrainer:
         plt.grid()
         plt.title("Training History")
         plt.savefig(os.path.join(self.output_model_dir, "history_plot.png"))
+        plt.close()
         print(f"Training history plot saved at: {os.path.join(self.output_model_dir, 'history_plot.png')}")

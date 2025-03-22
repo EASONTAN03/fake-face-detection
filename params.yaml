@@ -1,51 +1,22 @@
 make_dataset:
   seed: 17
   split_data: 0
-  split_ratio: 0.7
-  val_ratio: 0.1
-  test_ratio: 0.2
+  val_ratio: 0.15
+  test_ratio: 0.10
   
 # prepare:
 prepare:
-  benchmark: 1
+  benchmark: 5
   output_type: ["train", "val", "test"]
   color: "RGB" #Gray RGB
-  resize: [600, 600]
-  method: ["none"] #fft lbp sobel clahe none
-  compute_hist: False
-  extract_stats: False
+  method: ["clahe"] # clahe none
   clahe:
-    clip_limit: 0.4
+    clip_limit: 1
     tile_grid_size: [8,8] 
-
 
 train:
   model_benchmark: 1
   model: "cnn" #cnn then edit in cnn.json
-  scaler: "standard" #standard
-  svm:
-    C: [0.01,1,10,100,1000] #[1] #[0.1, 1, 10]
-    gamma: [0.01,1,10,100,1000] #'scale', 
-    kernel: ['rbf'] #['rbf'] #['linear', 'rbf', 'poly']
-  knn:
-    n_neighbors: [3, 5, 7, 9, 11, 13, 15]
-    weights: ['uniform', 'distance']
-    metric: ['euclidean', 'manhattan']
-  lgbm:
-    objective: ['binary']
-    metric: ['binary_logloss']
-    num_leaves: [10,20,30,40,50]
-    learning_rate: [0.1,0.2]
-    max_depth: [5,10,15,20]
-    min_data_in_leaf: [5,10,15,20]
-    training_round: [50, 100]
-  xgboost:
-    objective: ['binary:hinge'] #binary:logistic
-    learning_rate: [0.1,0.2]
-    max_depth: [5,10,15,20]
-    min_child_weight: [5,10,15,20]
-    training_round: [50, 100]
-
 
 evaluate:
   model: "cnn"

@@ -41,7 +41,6 @@ param_prepare = params['prepare']
 prepare_benchmark = param_prepare['benchmark']
 output_type = param_prepare['output_type']
 color=param_prepare['color']
-resize = tuple(param_prepare['resize'])
 preprocess_method = param_prepare['method']
 
 # Define input and output directories

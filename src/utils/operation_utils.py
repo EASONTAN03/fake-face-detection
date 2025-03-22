@@ -68,7 +68,7 @@ def load_json(config_path):
         return json.load(file)
     
 
-def split_dataset(real_images, fake_images, val_ratio, test_ratio, random_state=42):
+def split_dataset(real_images, fake_images, test_ratio, val_ratio=None, random_state=42):
     """
     Splits the dataset into training, validation, and test sets.
 
@@ -101,22 +101,34 @@ def split_dataset(real_images, fake_images, val_ratio, test_ratio, random_state=
     )
 
     # Split temp set into validation and test
-    val_images, test_images, val_labels, test_labels = train_test_split(
-        temp_images,
-        temp_labels,
-        test_size=(test_ratio / (val_ratio + test_ratio)),  # Adjust ratio
-        random_state=random_state,
-        stratify=temp_labels  # Ensure class balance
-    )
+    if val_ratio!=0:
+        val_images, test_images, val_labels, test_labels = train_test_split(
+            temp_images,
+            temp_labels,
+            test_size=(test_ratio / (val_ratio + test_ratio)),  # Adjust ratio
+            random_state=random_state,
+            stratify=temp_labels  # Ensure class balance
+        )
 
-    # Detailed split summary
-    split_details = {
-        "Dataset Split": f"Train={len(train_images)}, Val={len(val_images)}, Test={len(test_images)}",
-        "Total train data": [sum(1 for label in train_labels if label == 0), sum(1 for label in train_labels if label == 1)],
-        "Total val data": [sum(1 for label in val_labels if label == 0), sum(1 for label in val_labels if label == 1)],
-        "Total test data": [sum(1 for label in test_labels if label == 0), sum(1 for label in test_labels if label == 1)],
-        "Remark": "real, fake"
-    }    
+        split_details = {
+            "Dataset Split": f"Train={len(train_images)}, Val={len(val_images)}, Test={len(test_images)}",
+            "Total train data": [sum(1 for label in train_labels if label == 0), sum(1 for label in train_labels if label == 1)],
+            "Total val data": [sum(1 for label in val_labels if label == 0), sum(1 for label in val_labels if label == 1)],
+            "Total test data": [sum(1 for label in test_labels if label == 0), sum(1 for label in test_labels if label == 1)],
+            "Remark": "real, fake"
+        }    
+
+    else: 
+        val_images=None
+        val_labels=None
+        test_images=temp_images
+        test_labels=temp_labels
+        split_details = {
+            "Dataset Split": f"Train={len(train_images)}, Test={len(test_images)}",
+            "Total train data": [sum(1 for label in train_labels if label == 0), sum(1 for label in train_labels if label == 1)],
+            "Total test data": [sum(1 for label in test_labels if label == 0), sum(1 for label in test_labels if label == 1)],
+            "Remark": "real, fake"
+        }    
     print(split_details)
 
     return train_images, val_images, test_images, train_labels, val_labels, test_labels, split_details

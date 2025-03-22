@@ -34,7 +34,7 @@ if split_data>0:
     real_images, fake_images=utils.select_and_extract_images(real_images, fake_images, split_data, seed)
 
 train_images, val_images, test_images, train_labels, val_labels, test_labels, split_details = utils.split_dataset(
-    real_images, fake_images, val_ratio, test_ratio, random_state=42
+    real_images, fake_images, test_ratio, val_ratio=val_ratio, random_state=42
 )
 total_data=real_images+fake_images
 
@@ -48,12 +48,7 @@ utils.check_delete_dir(interim_dir)
 utils.create_dir(interim_dir)
 
 train_dir = os.path.join(interim_dir, "train")
-validate_dir = os.path.join(interim_dir, "val")
-test_dir = os.path.join(interim_dir, "test")
 utils.create_dir(train_dir)
-utils.create_dir(validate_dir)
-utils.create_dir(test_dir)
-
 for i, image_path in enumerate(train_images):
     file_name = image_path.split("/")[-1]  # Get the original file name
     file_name = os.path.basename(file_name)
@@ -66,20 +61,23 @@ for i, image_path in enumerate(train_images):
     else:
         shutil.copy(image_path, train_fake_dir)  # Copy the image to the train directory
 
+if val_images or val_labels is not None:
+    validate_dir = os.path.join(interim_dir, "val")
+    utils.create_dir(validate_dir)
+    for i, image_path in enumerate(val_images):
+        file_name = image_path.split("/")[-1]  # Get the original file name
+        file_name = os.path.basename(file_name)
+        validate_real_dir=os.path.join(validate_dir, "real")
+        validate_fake_dir=os.path.join(validate_dir, "fake")
+        utils.create_dir(validate_real_dir)
+        utils.create_dir(validate_fake_dir)
+        if val_labels[i] == 0:
+            shutil.copy(image_path, validate_real_dir)  # Copy the image to the train directory
+        else:
+            shutil.copy(image_path, validate_fake_dir)  # Copy the image to the train directory
 
-for i, image_path in enumerate(val_images):
-    file_name = image_path.split("/")[-1]  # Get the original file name
-    file_name = os.path.basename(file_name)
-    validate_real_dir=os.path.join(validate_dir, "real")
-    validate_fake_dir=os.path.join(validate_dir, "fake")
-    utils.create_dir(validate_real_dir)
-    utils.create_dir(validate_fake_dir)
-    if val_labels[i] == 0:
-        shutil.copy(image_path, validate_real_dir)  # Copy the image to the train directory
-    else:
-        shutil.copy(image_path, validate_fake_dir)  # Copy the image to the train directory
-
-
+test_dir = os.path.join(interim_dir, "test")
+utils.create_dir(test_dir)
 for i, image_path in enumerate(test_images):
     file_name = image_path.split("/")[-1]  # Get the original file name
     test_real_dir=os.path.join(test_dir, "real")
