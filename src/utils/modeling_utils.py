@@ -4,17 +4,13 @@ import json
 import csv
 import pickle
 from sklearn.metrics import confusion_matrix
-from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, roc_curve, f1_score
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, roc_curve
 from fvcore.nn import FlopCountAnalysis
-# from sklearn.metrics import accuracy_score, confusion_matrix, classification_report, make_scorer, log_loss, hinge_loss
-# from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, learning_curve, StratifiedKFold
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from torchvision import transforms, datasets, models
+from torchvision import models
 from torchsummary import summary
 import matplotlib.pyplot as plt
 import time
@@ -46,13 +42,6 @@ class EfficientNet(BaseCNN):
         # Replace the final classifier
         in_features = self.model.classifier[1].in_features
         self.model.classifier[1] = nn.Linear(in_features, num_classes)
-        # self.model.classifier = nn.Sequential(
-        #     nn.Linear(in_features, 1280),
-        #     nn.ReLU(),
-        #     nn.Dropout(p=0.4),  # 🔹 Increased dropout from default (0.2) to 0.4
-        #     nn.Linear(1280, num_classes)
-        # )
-
 
     def forward(self, x):
         return self.model(x)
@@ -64,14 +53,6 @@ class MobileNet(BaseCNN):
 
         in_features = self.model.classifier[3].in_features
         self.model.classifier[3] = nn.Linear(in_features, num_classes)
-
-        in_features = self.model.classifier[0].in_features  # This is 960 in MobileNetV3 Large
-        # self.model.classifier = nn.Sequential(
-        #     nn.Linear(in_features, 1280),  # Correct input size from 960 to 1280
-        #     nn.Hardswish(),
-        #     nn.Dropout(p=0.4),  # Increased dropout to prevent overfitting
-        #     nn.Linear(1280, num_classes)  # Output to match number of classes
-        # )
 
     def forward(self, x):
         return self.model(x)
@@ -97,7 +78,6 @@ class CNNTrainer:
 
         if model_name is None:
             raise ValueError(f"Invalid model name '{self.config['model_name']}' in config file.")
-        # self.model = model_name(channel=self.config["input_shape"][2], num_classes=num_classes).to(self.device)
         self.model = model_name(num_classes=num_classes).to(self.device)
 
         self.loss_function = self.get_loss_function()

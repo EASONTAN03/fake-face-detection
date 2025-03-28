@@ -1,0 +1,35 @@
+[
+    {
+        "dataset": "real_and_fake_face_2",
+        "prepare_benchmark": 1,
+        "seed": 17,
+        "color_space": "color:RGB",
+        "preprocess_method": [
+            "['none']"
+        ],
+        "output_dir": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\data/processed\\real_and_fake_face_2",
+        "runtime_seconds": 53.95754051208496
+    },
+    {
+        "dataset": "real_and_fake_face_2",
+        "prepare_benchmark": 2,
+        "seed": 17,
+        "color_space": "color:RGB",
+        "preprocess_method": [
+            "['clahe'], clip_limit:0.4 ,tile_grid_size:(8, 8)"
+        ],
+        "output_dir": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\data/processed\\real_and_fake_face_2",
+        "runtime_seconds": 54.91773056983948
+    },
+    {
+        "dataset": "real_and_fake_face_2",
+        "prepare_benchmark": 3,
+        "seed": 17,
+        "color_space": "color:RGB",
+        "preprocess_method": [
+            "['clahe'], clip_limit:0.5 ,tile_grid_size:(8, 8)"
+        ],
+        "output_dir": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\data/processed\\real_and_fake_face_2",
+        "runtime_seconds": 31.25694441795349
+    }
+]

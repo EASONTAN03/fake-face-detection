@@ -12,7 +12,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 import operation_utils as utils
 import preprocess_utils as preprocess
 
-start_time = time.time()
 
 current_dir = os.getcwd()
 print(current_dir)
@@ -91,10 +90,13 @@ for index, dir in enumerate(output_type_dir):
     if "clahe" in preprocess_method:
         clip_limit = param_prepare['clahe']['clip_limit']
         tile_grid_size = tuple(param_prepare['clahe']['tile_grid_size'])
+        start_time = time.time()
         processed_images = preprocess.apply_clahe(processed_images, clip_limit, tile_grid_size)
+        end_time = time.time()
         preprocess_method_str.append(f'{preprocess_method}, clip_limit:{clip_limit} ,tile_grid_size:{tile_grid_size}')
     if "none" in preprocess_method:
         preprocess_method_str.append(f'{preprocess_method}')
+        runtime = 0
 
     features = np.array(processed_images, np.float32)
 
@@ -123,7 +125,6 @@ for index, dir in enumerate(output_type_dir):
             print(f"Invalid label for image {filename}")
 
 # Calculate the total runtime
-end_time = time.time()
 runtime = end_time - start_time
 print(f"Total runtime: {runtime:.2f} seconds")
 

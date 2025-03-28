@@ -1,0 +1,47 @@
+[
+    {
+        "seed": 17,
+        "model_path": "C:\\Users\\tanbe\\OneDrive\\Desktop\\Works\\HWUM\\FYP\\fakefacedetect\\models\\real_and_fake_face_2_1\\MobileNet\\1741881048",
+        "data_dir": "real_and_fake_face_2_1",
+        "model_params": {
+            "model_name": "MobileNet",
+            "input_shape": [
+                224,
+                224,
+                3
+            ],
+            "optimizer": "adam",
+            "learning_rate": 0.001,
+            "batch_size": 32,
+            "epochs": 50,
+            "loss_function": "cross_entropy",
+            "scheduler": {
+                "type": "cosine_annealing",
+                "T_max": 10,
+                "eta_min": 1e-06
+            },
+            "callbacks": {
+                "early_stopping": {
+                    "metric": "val_loss",
+                    "patience": 10
+                }
+            },
+            "augmentation": {
+                "resize": [
+                    224,
+                    224
+                ],
+                "normalize_mean": [
+                    0.485,
+                    0.456,
+                    0.406
+                ],
+                "normalize_std": [
+                    0.229,
+                    0.224,
+                    0.225
+                ]
+            }
+        }
+    }
+]

@@ -6,12 +6,12 @@ make_dataset:
   
 # prepare:
 prepare:
-  benchmark: 5
+  benchmark: 3
   output_type: ["train", "val", "test"]
   color: "RGB" #Gray RGB
   method: ["clahe"] # clahe none
   clahe:
-    clip_limit: 1
+    clip_limit: 0.5
     tile_grid_size: [8,8] 
 
 train:

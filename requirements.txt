@@ -2,10 +2,9 @@ numpy
 opencv-python
 scikit-learn
 matplotlib
-lightgbm
-xgboost
 pillow
 scikit-image
 joblib
 pandas
 pyyaml
+fvcore
