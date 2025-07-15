@@ -5,8 +5,31 @@ Machine learning for real and fake face detection
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
+# FakefaceDetect
 
-## Project Organization
+This project investigates real vs. fake face classification using lightweight deep learning models with a focus on balancing predictive performance and computational efficiency. Built on the Real and Fake Face Detection Dataset, it provides a modular pipeline for data preprocessing, model training, evaluation, and deployment.
+
+## 🔍 Key Highlights
+- 🔬 Evaluated **MobileNetV3-Large** and **EfficientNet-B0**
+- 💡 Input image types: raw RGB and CLAHE-enhanced
+- 🧠 Model selection guided by **NetScore** (performance vs. efficiency)
+- 🔁 Data augmentation: horizontal flipping, ±30° rotation
+- ⚙️ Model training includes hyperparameter tuning and cross-validation
+
+## 🏆 Results
+- **EfficientNet-B0**:  
+  - Accuracy: 82.9%  
+  - F1-score: 0.840  
+  - AUC-ROC: 0.896  
+- **MobileNetV3-Large** (with augmentation):  
+  - F1-score: 0.817  
+  - NetScore: **76.268**  
+  - FLOPs: 0.225 GFLOPs  
+  - Parameters: 4M  
+
+✅ Conclusion: MobileNetV3-Large with CLAHE preprocessing and augmentation offers a robust and efficient solution for real-time deepfake detection, validating **NetScore** as a selection metric for constrained environments.
+
+## 🧱 Project Structure
 
 ```
 ├── LICENSE            <- Open-source license if one is chosen
@@ -52,7 +75,7 @@ Machine learning for real and fake face detection
 
 --------
 
-Workflow
+### Workflow
 1. Set dataset benchmark and filepath in config.yaml, Set param for pre-process & ML in params.yaml
 2. Run make_dataset.py to split train test data
 3. Run src/prepare.py to pre-processd data into npy array (please run for train and test seperately[define in params.yaml])
